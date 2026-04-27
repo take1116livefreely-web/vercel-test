@@ -7,7 +7,6 @@ export type Database = {
         Row: { id: string; name: string; role: UserRole; created_at: string }
         Insert: { id: string; name: string; role?: UserRole }
         Update: { name?: string; role?: UserRole }
-        Relationships: []
       }
       incidents: {
         Row: {
@@ -29,7 +28,6 @@ export type Database = {
           tags?: string[]
         }
         Update: { tags?: string[] }
-        Relationships: []
       }
       responses: {
         Row: {
@@ -46,14 +44,9 @@ export type Database = {
           responder_id: string
           tags?: string[]
         }
-        Update: Record<string, never>
-        Relationships: []
+        Update: never
       }
     }
-    Views: Record<string, never>
-    Functions: Record<string, never>
-    Enums: Record<string, never>
-    CompositeTypes: Record<string, never>
   }
 }
 
