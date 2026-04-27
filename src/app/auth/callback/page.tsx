@@ -3,6 +3,7 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import type { EmailOtpType } from '@supabase/supabase-js'
 
 export default function AuthCallbackPage() {
   const router = useRouter()
@@ -34,7 +35,7 @@ export default function AuthCallbackPage() {
       if (tokenHash && type) {
         const { error } = await supabase.auth.verifyOtp({
           token_hash: tokenHash,
-          type: type as 'invite',
+          type: type as EmailOtpType,
         })
         router.replace(error ? '/login' : '/auth/update-password')
         return
