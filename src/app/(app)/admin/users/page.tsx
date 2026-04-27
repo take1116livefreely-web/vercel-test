@@ -9,7 +9,7 @@ export default async function AdminUsersPage() {
   if (!user) redirect('/login')
 
   const { data: appUser } = await supabase.from('users').select('role').eq('id', user.id).single()
-  if (appUser?.role !== 'admin') redirect('/')
+  if ((appUser as { role: string } | null)?.role !== 'admin') redirect('/')
 
   const { data: users } = await supabase.from('users').select('*').order('created_at')
 
