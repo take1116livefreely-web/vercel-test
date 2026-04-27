@@ -86,7 +86,10 @@ responses（対応履歴）
 - ユーザーの自己登録は無効化する（Supabase ダッシュボードで `Enable Email Signup` をオフ）。
 - 管理者が Supabase Admin API (`supabase.auth.admin.inviteUserByEmail`) でメールアドレスを招待する。
 - 招待メールに含まれるリンクから本人がパスワードを設定してログイン。
-- アプリ内に管理者専用の `/admin/users` ページを設け、招待・無効化を行う。
+- アプリ内に管理者専用の `/admin/users` ページを設け、招待・ユーザー削除を行う。
+- ユーザー削除は `/api/admin/delete-user` (POST) 経由で `supabase.auth.admin.deleteUser` を呼び出す。`auth.users` と連動して `users` テーブルの行も削除される（CASCADE）。
+  - 自分自身は削除不可（APIとUIの両方で制限）。
+  - 削除は取り消し不可。
 - `users` テーブルに `role` カラム（`admin` / `member`）を持ち、Row Level Security (RLS) で管理者機能を制限する。
 
 ### 画面構成
