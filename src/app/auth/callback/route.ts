@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createServerClient } from '@supabase/ssr'
 import type { EmailOtpType } from '@supabase/supabase-js'
 
 export async function GET(request: Request) {
@@ -8,7 +8,22 @@ export async function GET(request: Request) {
   const tokenHash = url.searchParams.get('token_hash')
   const type = url.searchParams.get('type') as EmailOtpType | null
 
-  const supabase = createClient()
+  const response = NextResponse.redirect(new URL('/auth/update-password', url.origin))
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() { return request.cookies.getAll() },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options)
+          )
+        },
+      },
+    }
+  )
 
   if (code) {
     await supabase.auth.exchangeCodeForSession(code)
@@ -16,5 +31,5 @@ export async function GET(request: Request) {
     await supabase.auth.verifyOtp({ token_hash: tokenHash, type })
   }
 
-  return NextResponse.redirect(new URL('/auth/update-password', url.origin))
+  return response
 }
