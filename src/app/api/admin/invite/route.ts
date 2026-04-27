@@ -13,9 +13,10 @@ export async function POST(request: Request) {
   const { email, name, role } = await request.json()
   if (!email || !name) return NextResponse.json({ error: 'email と name は必須です' }, { status: 400 })
 
+  const origin = new URL(request.url).origin
   const admin = createAdminClient()
   const { data, error } = await admin.auth.admin.inviteUserByEmail(email, {
-    redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
+    redirectTo: `${origin}/auth/callback`,
   })
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
