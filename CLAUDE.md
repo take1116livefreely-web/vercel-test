@@ -109,6 +109,52 @@ responses（対応履歴）
 3. Supabase RPC または `filter` で `tags @> ARRAY[...]` クエリを発行
 4. 案件一覧をリアルタイムに絞り込み表示
 
+## 招待フロー（認証コールバック）
+
+### フロー概要
+
+```
+1. 管理者が /admin/users から招待メール送信
+2. Supabase が招待メールを送付
+3. ユーザーがリンクをクリック → Supabase がトークンを検証
+4. /auth/callback へリダイレクト（クライアントページ）
+5. トークン形式に応じてセッション確立
+6. /auth/update-password へ遷移
+7. パスワード設定 → / へ遷移
+```
+
+### コールバックのトークン形式
+
+`src/app/auth/callback/page.tsx` はクライアントコンポーネントで以下3形式に対応する。
+
+| 形式 | パラメータ | 処理 |
+|---|---|---|
+| ハッシュフラグメント（招待メール） | `#access_token=xxx&refresh_token=xxx` | `supabase.auth.setSession()` |
+| token_hash | `?token_hash=xxx&type=invite` | `supabase.auth.verifyOtp()` |
+| PKCE code | `?code=xxx` | `supabase.auth.exchangeCodeForSession()` |
+
+- Route Handler（サーバー）はハッシュフラグメントを受け取れないため、コールバックはクライアントページとして実装している。
+
+### Supabase 設定（必須）
+
+- **Authentication → URL Configuration → Redirect URLs**: `https://*.vercel.app/auth/callback` を追加
+- **Authentication → URL Configuration → Site URL**: 本番の Vercel URL を設定
+- **Authentication → Settings → SMTP**: Resend などのカスタム SMTP を設定（Free プランはデフォルトで 2通/時 の制限あり）
+
+### 招待 API の注意点
+
+`src/app/api/admin/invite/route.ts` の `redirectTo` は `new URL(request.url).origin` から動的生成する。環境変数（`NEXT_PUBLIC_SITE_URL`）には依存しない。
+
+### middleware の公開パス
+
+`src/middleware.ts` で以下は未認証でもアクセス可能にしている。
+
+```
+/login
+/auth/callback
+/auth/update-password
+```
+
 ## Key Conventions
 
 - ハッシュタグは入力・保存時に `#` を除いたワードのみを配列に保存する（表示時に `#` を付ける）。
