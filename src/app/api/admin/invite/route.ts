@@ -8,13 +8,15 @@ export async function POST(request: Request) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { data: appUser } = await supabase.from('users').select('role').eq('id', user.id).single()
-  if (appUser?.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  if ((appUser as { role: string } | null)?.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const { email, name, role } = await request.json()
   if (!email || !name) return NextResponse.json({ error: 'email と name は必須です' }, { status: 400 })
 
   const admin = createAdminClient()
-  const { data, error } = await admin.auth.admin.inviteUserByEmail(email)
+  const { data, error } = await admin.auth.admin.inviteUserByEmail(email, {
+    redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
+  })
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   const { error: upsertError } = await admin
