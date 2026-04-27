@@ -9,12 +9,12 @@ export default async function AdminUsersPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: appUser } = await (supabase as any).from('users').select('role').eq('id', user.id).single()
+  const result = await supabase.from('users').select('role').eq('id', user.id).single()
+  const appUser = result.data as { role: string } | null
   if (appUser?.role !== 'admin') redirect('/')
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: users } = await (supabase as any).from('users').select('*').order('created_at')
+  const usersResult = await supabase.from('users').select('*').order('created_at')
+  const users = usersResult.data as AppUser[] | null
 
   return (
     <div>
@@ -26,7 +26,7 @@ export default async function AdminUsersPage() {
         </div>
         <div>
           <h2 className="text-base font-semibold text-gray-700 mb-3">登録済みユーザー</h2>
-          <UserList users={(users ?? []) as AppUser[]} currentUserId={user.id} />
+          <UserList users={users ?? []} currentUserId={user.id} />
         </div>
       </div>
     </div>
