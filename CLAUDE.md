@@ -84,9 +84,9 @@ responses（対応履歴）
 ### 認証・ユーザー管理（招待制）
 
 - ユーザーの自己登録は無効化する（Supabase ダッシュボードで `Enable Email Signup` をオフ）。
-- 管理者が Supabase Admin API (`supabase.auth.admin.inviteUserByEmail`) でメールアドレスを招待する。
-- 招待メールに含まれるリンクから本人がパスワードを設定してログイン。
-- アプリ内に管理者専用の `/admin/users` ページを設け、招待・ユーザー削除を行う。
+- 管理者が `/admin/users` の招待フォームで **名前・メールアドレス・仮パスワード・ロール** を一括入力して登録する（1ステップ）。
+  - `inviteUserByEmail` でアカウントを作成し、即座に `updateUserById` でパスワードと `email_confirm: true` を設定する。
+  - ユーザーはメール内のリンクを踏まなくてもそのまま仮パスワードでログインできる。
 - ユーザー削除は `/api/admin/delete-user` (POST) 経由で `supabase.auth.admin.deleteUser` を呼び出す。`auth.users` と連動して `users` テーブルの行も削除される（CASCADE）。
   - 自分自身は削除不可（APIとUIの両方で制限）。
   - 削除は取り消し不可。
@@ -155,10 +155,33 @@ responses（対応履歴）
 /auth/update-password
 ```
 
+### 編集・削除の権限ルール
+
+| 操作 | 投稿者本人 | 管理者 | 他のメンバー |
+|---|---|---|---|
+| 案件（incident）編集 | ○ | ○ | × |
+| 案件（incident）削除 | ○ | ○ | × |
+| 対応履歴（response）編集 | ○ | ○ | × |
+| 対応履歴（response）削除 | ○ | ○ | × |
+
+- 案件を削除すると、紐付く対応履歴もすべて CASCADE 削除される。
+- 権限チェックは API ルート側（サーバー）で行う。UI のボタン表示はあくまで UX 補助。
+- 案件の編集・削除ボタンは `IncidentActions` クライアントコンポーネントが担う（`canEdit` prop で制御）。
+- 対応履歴の編集・削除ボタンは `ResponseList` クライアントコンポーネントが担う（`isAdmin || responder_id === currentUserId` で制御）。
+
+#### 関連ファイル
+
+| ファイル | 役割 |
+|---|---|
+| `src/app/api/incidents/[id]/route.ts` | PATCH（編集）/ DELETE（削除）エンドポイント |
+| `src/app/api/responses/[id]/route.ts` | PATCH（編集）/ DELETE（削除）エンドポイント |
+| `src/app/(app)/incidents/[id]/IncidentActions.tsx` | 案件ヘッダー + インライン編集フォーム（クライアント） |
+| `src/app/(app)/incidents/[id]/ResponseList.tsx` | 対応履歴一覧 + インライン編集フォーム（クライアント） |
+
 ## Key Conventions
 
 - ハッシュタグは入力・保存時に `#` を除いたワードのみを配列に保存する（表示時に `#` を付ける）。
-- ゼネコン名・現場名・対応者名は `incidents` のカラムとして持ちつつ、タグ配列にも自動で追加して検索対象にする。
-- 対応履歴（responses）は追記のみ。編集・削除は行わない（記録の改ざんを防ぐため）。
+- ゼネコン名・現場名は `incidents` のカラムとして持ちつつ、タグ配列にも自動で追加して検索対象にする。
 - Vercel の環境変数に `NEXT_PUBLIC_SUPABASE_URL` と `NEXT_PUBLIC_SUPABASE_ANON_KEY` を設定する。
 - `SUPABASE_SERVICE_ROLE_KEY` はサーバーサイドのみで使用し、クライアントには露出させない。
+- TypeScript のビルドエラーは `next.config.js` の `ignoreBuildErrors: true` で回避している（Supabase v2.49 の型問題）。ESLint も同様に `ignoreDuringBuilds: true`。
