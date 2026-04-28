@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { sendInviteEmail } from '@/lib/mailer'
 
 export async function POST(request: Request) {
   const supabase = createClient()
@@ -17,7 +18,7 @@ export async function POST(request: Request) {
   const origin = new URL(request.url).origin
   const admin = createAdminClient()
 
-  // 招待メール送信
+  // アカウント作成（招待メールは Supabase が送るが、リンクは使わなくてよい）
   const { data, error } = await admin.auth.admin.inviteUserByEmail(email, {
     redirectTo: `${origin}/auth/callback`,
   })
@@ -34,6 +35,14 @@ export async function POST(request: Request) {
     .upsert({ id: data.user.id, name, role: role ?? 'member' })
 
   if (upsertError) return NextResponse.json({ error: upsertError.message }, { status: 500 })
+
+  // ログイン情報をメールで送信
+  try {
+    await sendInviteEmail({ to: email, name, password, loginUrl: `${origin}/login` })
+  } catch (mailErr) {
+    console.error('招待メール送信エラー:', mailErr)
+    // メール送信失敗はアカウント作成自体を失敗扱いにしない
+  }
 
   return NextResponse.json({ ok: true })
 }
