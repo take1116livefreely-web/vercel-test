@@ -1,8 +1,8 @@
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import TagBadge from '@/components/TagBadge'
 import ResponseForm from './ResponseForm'
 import ResponseList from './ResponseList'
+import IncidentActions from './IncidentActions'
 
 type Props = { params: { id: string } }
 
@@ -28,31 +28,23 @@ export default async function IncidentPage({ params }: Props) {
   const { data: appUser } = await supabase
     .from('users').select('role').eq('id', user!.id).single()
   const isAdmin = (appUser as { role: string } | null)?.role === 'admin'
+  const canEdit = isAdmin || (incident as any).created_by === user!.id
 
   return (
     <div>
-      {/* 案件ヘッダー */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6 mb-4">
-        <div className="flex items-start justify-between gap-2 mb-3">
-          <h1 className="text-xl font-bold text-gray-800">{incident.title}</h1>
-          <p className="text-xs text-gray-400 whitespace-nowrap">
-            {new Date(incident.created_at).toLocaleString('ja-JP')}
-          </p>
-        </div>
-        <div className="text-sm text-gray-600 mb-3 space-y-1">
-          <p><span className="font-medium">ゼネコン：</span>{incident.general_contractor}</p>
-          <p><span className="font-medium">現場：</span>{incident.site_name}</p>
-          <p><span className="font-medium">登録者：</span>{(incident.creator as any)?.name}</p>
-        </div>
-        <div className="bg-gray-50 rounded-lg p-3 text-sm text-gray-800 whitespace-pre-wrap mb-3">
-          {incident.content}
-        </div>
-        {incident.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1">
-            {incident.tags.map((tag: string) => <TagBadge key={tag} tag={tag} />)}
-          </div>
-        )}
-      </div>
+      <IncidentActions
+        incident={{
+          id: incident.id,
+          title: incident.title,
+          general_contractor: incident.general_contractor,
+          site_name: incident.site_name,
+          content: incident.content,
+          tags: incident.tags,
+          created_at: incident.created_at,
+          creator: (incident.creator as any) ?? null,
+        }}
+        canEdit={canEdit}
+      />
 
       {/* 対応履歴スレッド */}
       <ResponseList
