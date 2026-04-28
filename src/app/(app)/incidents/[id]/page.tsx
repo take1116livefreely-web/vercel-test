@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import TagBadge from '@/components/TagBadge'
 import ResponseForm from './ResponseForm'
+import ResponseList from './ResponseList'
 
 type Props = { params: { id: string } }
 
@@ -23,6 +24,10 @@ export default async function IncidentPage({ params }: Props) {
     .order('created_at', { ascending: true })
 
   const { data: { user } } = await supabase.auth.getUser()
+
+  const { data: appUser } = await supabase
+    .from('users').select('role').eq('id', user!.id).single()
+  const isAdmin = (appUser as { role: string } | null)?.role === 'admin'
 
   return (
     <div>
@@ -50,24 +55,11 @@ export default async function IncidentPage({ params }: Props) {
       </div>
 
       {/* 対応履歴スレッド */}
-      <div className="space-y-3 mb-6">
-        {responses?.map((res) => (
-          <div key={res.id} className="bg-white rounded-xl border border-gray-200 p-4 ml-6">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm font-medium text-blue-700">{(res.responder as any)?.name}</p>
-              <p className="text-xs text-gray-400">
-                {new Date(res.created_at).toLocaleString('ja-JP')}
-              </p>
-            </div>
-            <p className="text-sm text-gray-800 whitespace-pre-wrap">{res.content}</p>
-            {res.tags.length > 0 && (
-              <div className="flex flex-wrap gap-1 mt-2">
-                {res.tags.map((tag: string) => <TagBadge key={tag} tag={tag} />)}
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
+      <ResponseList
+        responses={(responses ?? []) as any}
+        currentUserId={user!.id}
+        isAdmin={isAdmin}
+      />
 
       {/* 対応追加フォーム */}
       <ResponseForm incidentId={params.id} userId={user!.id} />
