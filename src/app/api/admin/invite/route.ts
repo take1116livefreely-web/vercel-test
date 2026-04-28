@@ -10,15 +10,24 @@ export async function POST(request: Request) {
   const { data: appUser } = await supabase.from('users').select('role').eq('id', user.id).single()
   if ((appUser as { role: string } | null)?.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  const { email, name, role } = await request.json()
-  if (!email || !name) return NextResponse.json({ error: 'email と name は必須です' }, { status: 400 })
+  const { email, name, role, password } = await request.json()
+  if (!email || !name || !password) return NextResponse.json({ error: 'name・email・password は必須です' }, { status: 400 })
+  if (password.length < 6) return NextResponse.json({ error: 'パスワードは6文字以上で入力してください' }, { status: 400 })
 
   const origin = new URL(request.url).origin
   const admin = createAdminClient()
+
+  // 招待メール送信
   const { data, error } = await admin.auth.admin.inviteUserByEmail(email, {
     redirectTo: `${origin}/auth/callback`,
   })
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // 仮パスワードをすぐに設定（メールリンク不要でログイン可能にする）
+  await admin.auth.admin.updateUserById(data.user.id, {
+    password,
+    email_confirm: true,
+  })
 
   const { error: upsertError } = await admin
     .from('users')
