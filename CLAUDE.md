@@ -141,6 +141,35 @@ responses（対応履歴）
 - **Authentication → URL Configuration → Site URL**: 本番の Vercel URL を設定
 - **Authentication → Settings → SMTP**: Resend などのカスタム SMTP を設定（Free プランはデフォルトで 2通/時 の制限あり）
 
+### 招待メール（ログイン情報の自動送信）
+
+招待時に nodemailer + Brevo SMTP を使って、ログイン情報を記載したカスタムメールを送信する。
+
+**メール本文に含まれる情報：**
+- ログイン URL（`/login`）
+- メールアドレス
+- 管理者が設定した仮パスワード
+
+**実装ファイル：** `src/lib/mailer.ts`（`sendInviteEmail` 関数）
+
+**フロー：**
+1. `inviteUserByEmail` でアカウント作成（Supabase デフォルト招待メールも届くが無視してよい）
+2. `updateUserById` でパスワード設定 + メール確認済みにする
+3. `sendInviteEmail` でログイン情報メールを送信
+4. メール送信が失敗してもアカウント作成自体は成功扱い（ログにエラーのみ記録）
+
+**必要な環境変数（`.env.local` および Vercel プロジェクト Settings → Environment Variables）：**
+
+| 変数名 | 値 |
+|---|---|
+| `SMTP_HOST` | `smtp-relay.brevo.com` |
+| `SMTP_PORT` | `587` |
+| `SMTP_USER` | Brevo の SMTP ログイン（メールアドレス） |
+| `SMTP_PASS` | Brevo の SMTP キー |
+| `SMTP_FROM` | 送信元メールアドレス |
+
+> **Vercel での設定場所：** チーム全体の Environment Variables ではなく、プロジェクト（vercel-test）を選択 → Settings → Environment Variables に追加する。
+
 ### 招待 API の注意点
 
 `src/app/api/admin/invite/route.ts` の `redirectTo` は `new URL(request.url).origin` から動的生成する。環境変数（`NEXT_PUBLIC_SITE_URL`）には依存しない。
