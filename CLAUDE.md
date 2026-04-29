@@ -207,6 +207,62 @@ responses（対応履歴）
 | `src/app/(app)/incidents/[id]/IncidentActions.tsx` | 案件ヘッダー + インライン編集フォーム（クライアント） |
 | `src/app/(app)/incidents/[id]/ResponseList.tsx` | 対応履歴一覧 + インライン編集フォーム（クライアント） |
 
+## 変更履歴
+
+### 2026-04-29
+
+#### 1. ユーザー管理画面の表示順改善
+
+`src/app/(app)/admin/users/page.tsx` にて、ユーザー一覧を取得後に **管理者（admin）をメンバー（member）より上位に表示** するソートを追加。
+
+```typescript
+const users = (usersResult.data as AppUser[] | null)?.sort((a, b) => {
+  if (a.role === b.role) return 0
+  return a.role === 'admin' ? -1 : 1
+})
+```
+
+#### 2. 案件一覧の検索ボタン追加
+
+`src/app/(app)/page.tsx` の検索バー右側に **「検索」ボタン** を追加。
+スマートフォンなどからも検索を実行しやすくなった。
+
+```tsx
+<div className="flex gap-2">
+  <input type="text" name="q" ... className="flex-1 ..." />
+  <button type="submit" className="bg-blue-600 ... px-4 py-2 rounded-lg whitespace-nowrap">検索</button>
+</div>
+```
+
+#### 3. 一括ユーザー登録スクリプトの作成
+
+管理画面のフォームを使わずに、CSV（Excelから変換）をもとに複数ユーザーを一括登録するための Node.js スクリプトを作成。
+
+| ファイル | 用途 |
+|---|---|
+| `scripts/bulk-invite.js` | テスト用スクリプト（1名のみ） |
+| `scripts/bulk-invite-production.js` | 本番用スクリプト（38名） |
+
+**動作フロー（1ユーザーあたり）：**
+1. `admin.auth.admin.inviteUserByEmail` でアカウント作成
+2. `admin.auth.admin.updateUserById` でパスワード設定 + メール確認済みにする
+3. `admin.from('users').upsert` で `users` テーブルに名前・ロールを登録
+4. nodemailer + Brevo SMTP でログイン情報メールを送信
+5. 各ユーザー間に 1.5 秒のディレイ（レート制限対策）
+
+**実行方法：**
+
+```bash
+cd C:\WorkSpace\ClaudeCode\vercel-test
+node scripts/bulk-invite-production.js
+```
+
+- `.env.local` から Supabase・SMTP の認証情報を自動読み込み
+- `NEXT_PUBLIC_SUPABASE_URL`・`SUPABASE_SERVICE_ROLE_KEY`・SMTP 関連の環境変数が必要
+- スクリプトは Vercel にデプロイされないローカル専用ツール
+
+---
+
 ## Key Conventions
 
 - ハッシュタグは入力・保存時に `#` を除いたワードのみを配列に保存する（表示時に `#` を付ける）。
