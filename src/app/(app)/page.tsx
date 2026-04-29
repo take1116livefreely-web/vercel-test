@@ -35,13 +35,21 @@ export default async function HomePage({ searchParams }: Props) {
 
       {/* 検索バー */}
       <form method="get" className="mb-6">
-        <input
-          type="text"
-          name="q"
-          defaultValue={query}
-          placeholder="#清水　#モバイル　#通信不良"
-          className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
+        <div className="flex gap-2">
+          <input
+            type="text"
+            name="q"
+            defaultValue={query}
+            placeholder="#清水　#モバイル　#通信不良"
+            className="flex-1 border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <button
+            type="submit"
+            className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg whitespace-nowrap"
+          >
+            検索
+          </button>
+        </div>
         <p className="text-xs text-gray-400 mt-1">
           ハッシュタグで AND 検索できます（例：#清水 #通信不良）
         </p>

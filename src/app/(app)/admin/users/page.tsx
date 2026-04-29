@@ -13,8 +13,11 @@ export default async function AdminUsersPage() {
   const appUser = result.data as { role: string } | null
   if (appUser?.role !== 'admin') redirect('/')
 
-  const usersResult = await supabase.from('users').select('*').order('created_at')
-  const users = usersResult.data as AppUser[] | null
+  const usersResult = await supabase.from('users').select('*').order('role').order('created_at')
+  const users = (usersResult.data as AppUser[] | null)?.sort((a, b) => {
+    if (a.role === b.role) return 0
+    return a.role === 'admin' ? -1 : 1
+  })
 
   return (
     <div>
