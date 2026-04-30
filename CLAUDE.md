@@ -328,6 +328,55 @@ const { data } = await supabase
 - **必要な環境変数：** `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` / `SMTP_FROM`
 - Vercel への環境変数追加場所：プロジェクト（vercel-test）→ Settings → Environment Variables（チーム全体の設定ではない）
 
+### 2026-05-01
+
+#### 1. 案件に現場担当者・電話番号フィールドを追加
+
+**要 Supabase migration（未実施の場合は SQL Editor で実行）：**
+```sql
+ALTER TABLE incidents
+  ADD COLUMN site_contact text,
+  ADD COLUMN phone_number text;
+```
+
+- 両フィールドとも任意入力（NULL 許容）
+- 新規登録フォーム・編集フォームに追加
+- 現場担当者の入力欄右に「様」を固定表示
+- 電話番号ラベルに「（ハイフンなしで入力してください）」と表示
+- 案件詳細では値がある場合のみ「田中太郎 様」「09012345678」の形式で表示
+
+**変更ファイル：**
+
+| ファイル | 変更内容 |
+|---|---|
+| `src/lib/supabase/types.ts` | `site_contact`, `phone_number` を型定義に追加 |
+| `src/app/(app)/incidents/new/page.tsx` | 登録フォームにフィールド追加 |
+| `src/app/(app)/incidents/[id]/IncidentActions.tsx` | 表示・編集フォームにフィールド追加 |
+| `src/app/(app)/incidents/[id]/page.tsx` | 新フィールドを IncidentActions に渡す |
+| `src/app/api/incidents/[id]/route.ts` | PATCH で新フィールドを更新対象に追加 |
+
+#### 2. 連絡先一覧ページを追加
+
+`/contacts` で、登録された案件から現場担当者・電話番号を集約して一覧表示。
+
+**仕様：**
+- ゼネコン名・現場名・担当者名でのスペース区切り AND 検索
+- 検索バーのプレースホルダー：`例）大林　新笹子　中村`
+- 重複除外条件：同じ「現場名・電話番号・苗字（スペース前の部分）」の組み合わせのみ
+- 電話番号は `tel:` リンク（スマホからタップ発信）
+- 全ユーザーに表示（管理者限定ではない）
+- ナビバーに「連絡先」リンクを追加
+
+**追加ファイル：**
+
+| ファイル | 役割 |
+|---|---|
+| `src/app/(app)/contacts/page.tsx` | サーバーコンポーネント（データ取得） |
+| `src/app/(app)/contacts/ContactsClient.tsx` | クライアントコンポーネント（検索・表示） |
+
+**更新ファイル：**
+- `src/components/Navbar.tsx` — 「連絡先」リンクを追加
+
 ---
 
 ## Key Conventions
