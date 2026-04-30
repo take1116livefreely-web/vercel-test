@@ -9,22 +9,29 @@ type Props = { params: { id: string } }
 export default async function IncidentPage({ params }: Props) {
   const supabase = createClient()
 
-  const { data: incident } = await supabase
-    .from('incidents')
-    .select('*, creator:users!created_by(name)')
-    .eq('id', params.id)
-    .single()
+  // ① incident・responses・user を並列取得
+  const [
+    { data: incidentRaw },
+    { data: responses },
+    { data: { user } },
+  ] = await Promise.all([
+    supabase
+      .from('incidents')
+      .select('*, creator:users!created_by(name)')
+      .eq('id', params.id)
+      .single(),
+    supabase
+      .from('responses')
+      .select('*, responder:users!responder_id(name)')
+      .eq('incident_id', params.id)
+      .order('created_at', { ascending: true }),
+    supabase.auth.getUser(),
+  ])
 
+  const incident = incidentRaw as any
   if (!incident) notFound()
 
-  const { data: responses } = await supabase
-    .from('responses')
-    .select('*, responder:users!responder_id(name)')
-    .eq('incident_id', params.id)
-    .order('created_at', { ascending: true })
-
-  const { data: { user } } = await supabase.auth.getUser()
-
+  // ② appUser は user.id が必要なため直後に取得
   const { data: appUser } = await supabase
     .from('users').select('role').eq('id', user!.id).single()
   const isAdmin = (appUser as { role: string } | null)?.role === 'admin'
