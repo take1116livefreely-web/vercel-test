@@ -2,24 +2,45 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { parseTags } from '@/lib/tags'
 import TagBadge from '@/components/TagBadge'
+import SimpleNav from '@/components/SimpleNav'
+import Pagination from '@/components/Pagination'
 
-type Props = { searchParams: { q?: string } }
+const PAGE_SIZE = 20
+
+type Props = { searchParams: { q?: string; page?: string } }
 
 export default async function HomePage({ searchParams }: Props) {
   const supabase = createClient()
   const query = searchParams.q ?? ''
   const tags = parseTags(query)
+  const page = Math.max(1, Number(searchParams.page ?? 1))
+  const from = (page - 1) * PAGE_SIZE
+  const to = from + PAGE_SIZE - 1
+
+  let countQuery = supabase
+    .from('incidents')
+    .select('*', { count: 'exact', head: true })
 
   let incidentsQuery = supabase
     .from('incidents')
     .select('*, creator:users!created_by(name)')
     .order('created_at', { ascending: false })
+    .range(from, to)
 
   if (tags.length > 0) {
+    countQuery = countQuery.contains('tags', tags)
     incidentsQuery = incidentsQuery.contains('tags', tags)
   }
 
-  const { data: incidents } = await incidentsQuery
+  const [{ count }, { data: incidentsRaw }] = await Promise.all([
+    countQuery,
+    incidentsQuery,
+  ])
+  const incidents = (incidentsRaw ?? []) as any[]
+
+  const totalCount = count ?? 0
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE))
+  const currentPage = Math.min(page, totalPages)
 
   return (
     <div>
@@ -34,7 +55,7 @@ export default async function HomePage({ searchParams }: Props) {
       </div>
 
       {/* 検索バー */}
-      <form method="get" className="mb-6">
+      <form method="get" className="mb-2">
         <div className="flex gap-2">
           <input
             type="text"
@@ -50,17 +71,35 @@ export default async function HomePage({ searchParams }: Props) {
             検索
           </button>
         </div>
-        <p className="text-xs text-gray-400 mt-1">
-          ハッシュタグで AND 検索できます（例：#清水 #通信不良）
-        </p>
+        {/* ヒントテキストと右上ナビ */}
+        <div className="flex items-center justify-between mt-1.5">
+          <p className="text-xs text-gray-400">
+            ハッシュタグで AND 検索できます（例：#清水 #通信不良）
+          </p>
+          <SimpleNav page={currentPage} totalPages={totalPages} query={query} />
+        </div>
       </form>
+
+      {/* 総件数 */}
+      <div className="mt-5 mb-3">
+        {totalCount === 0 ? (
+          <p className="text-sm text-gray-400">
+            {query ? `「${query}」の検索結果：0 件` : '案件が登録されていません'}
+          </p>
+        ) : (
+          <p className="text-sm text-gray-500">
+            {query ? `「${query}」の検索結果：` : ''}
+            全 {totalCount.toLocaleString()} 件（{totalPages} ページ）
+          </p>
+        )}
+      </div>
 
       {/* 案件リスト */}
       <div className="space-y-3">
-        {incidents?.length === 0 && (
+        {incidents.length === 0 && (
           <p className="text-center text-gray-400 py-12">案件が見つかりません</p>
         )}
-        {incidents?.map((inc) => (
+        {incidents.map((inc) => (
           <Link
             key={inc.id}
             href={`/incidents/${inc.id}`}
@@ -85,6 +124,9 @@ export default async function HomePage({ searchParams }: Props) {
           </Link>
         ))}
       </div>
+
+      {/* 下部ページネーション */}
+      <Pagination page={currentPage} totalPages={totalPages} query={query} />
     </div>
   )
 }
