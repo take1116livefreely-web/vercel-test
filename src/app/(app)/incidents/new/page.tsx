@@ -21,6 +21,8 @@ export default function NewIncidentPage() {
     const title = data.get('title') as string
     const generalContractor = data.get('general_contractor') as string
     const siteName = data.get('site_name') as string
+    const siteContact = (data.get('site_contact') as string) || null
+    const phoneNumber = (data.get('phone_number') as string) || null
     const content = data.get('content') as string
     const tagInput = data.get('tags') as string
 
@@ -32,7 +34,7 @@ export default function NewIncidentPage() {
 
     const { data: incident, error: err } = await supabase
       .from('incidents')
-      .insert({ title, general_contractor: generalContractor, site_name: siteName, content, created_by: user.id, tags })
+      .insert({ title, general_contractor: generalContractor, site_name: siteName, site_contact: siteContact, phone_number: phoneNumber, content, created_by: user.id, tags })
       .select('id')
       .single()
 
@@ -60,6 +62,19 @@ export default function NewIncidentPage() {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">現場名 <span className="text-red-500">*</span></label>
             <input name="site_name" required className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">現場担当者</label>
+            <div className="flex items-center gap-2">
+              <input name="site_contact" className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <span className="text-sm text-gray-700 shrink-0">様</span>
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">電話番号</label>
+            <input name="phone_number" type="tel" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
           </div>
         </div>
         <div>

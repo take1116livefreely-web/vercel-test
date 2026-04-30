@@ -45,6 +45,8 @@ export default async function IncidentPage({ params }: Props) {
           title: incident.title,
           general_contractor: incident.general_contractor,
           site_name: incident.site_name,
+          site_contact: incident.site_contact ?? null,
+          phone_number: incident.phone_number ?? null,
           content: incident.content,
           tags: incident.tags,
           created_at: incident.created_at,

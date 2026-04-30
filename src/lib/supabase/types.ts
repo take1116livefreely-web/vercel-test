@@ -14,6 +14,8 @@ export type Database = {
           title: string
           general_contractor: string
           site_name: string
+          site_contact: string | null
+          phone_number: string | null
           content: string
           created_by: string
           created_at: string
@@ -23,6 +25,8 @@ export type Database = {
           title: string
           general_contractor: string
           site_name: string
+          site_contact?: string | null
+          phone_number?: string | null
           content: string
           created_by: string
           tags?: string[]

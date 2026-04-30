@@ -9,6 +9,8 @@ type Incident = {
   title: string
   general_contractor: string
   site_name: string
+  site_contact: string | null
+  phone_number: string | null
   content: string
   tags: string[]
   created_at: string
@@ -29,6 +31,8 @@ export default function IncidentActions({ incident, canEdit }: Props) {
       .map((t) => `#${t}`)
       .join(' ')
   )
+  const [siteContact, setSiteContact] = useState(incident.site_contact ?? '')
+  const [phoneNumber, setPhoneNumber] = useState(incident.phone_number ?? '')
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const router = useRouter()
@@ -38,7 +42,7 @@ export default function IncidentActions({ incident, canEdit }: Props) {
     const res = await fetch(`/api/incidents/${incident.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, general_contractor: contractor, site_name: site, content, tagInput }),
+      body: JSON.stringify({ title, general_contractor: contractor, site_name: site, site_contact: siteContact || null, phone_number: phoneNumber || null, content, tagInput }),
     })
     setSaving(false)
     if (res.ok) {
@@ -80,6 +84,19 @@ export default function IncidentActions({ incident, canEdit }: Props) {
             <input value={site} onChange={(e) => setSite(e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
           </div>
         </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">現場担当者</label>
+            <div className="flex items-center gap-2">
+              <input value={siteContact} onChange={(e) => setSiteContact(e.target.value)} className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <span className="text-sm text-gray-700 shrink-0">様</span>
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">電話番号</label>
+            <input value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} type="tel" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+        </div>
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">内容</label>
           <textarea value={content} onChange={(e) => setContent(e.target.value)} rows={4} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
@@ -119,6 +136,12 @@ export default function IncidentActions({ incident, canEdit }: Props) {
       <div className="text-sm text-gray-600 mb-3 space-y-1">
         <p><span className="font-medium">ゼネコン：</span>{incident.general_contractor}</p>
         <p><span className="font-medium">現場：</span>{incident.site_name}</p>
+        {incident.site_contact && (
+          <p><span className="font-medium">現場担当者：</span>{incident.site_contact} 様</p>
+        )}
+        {incident.phone_number && (
+          <p><span className="font-medium">電話番号：</span>{incident.phone_number}</p>
+        )}
         <p><span className="font-medium">登録者：</span>{incident.creator?.name}</p>
       </div>
       <div className="bg-gray-50 rounded-lg p-3 text-sm text-gray-800 whitespace-pre-wrap mb-3">
