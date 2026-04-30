@@ -377,6 +377,12 @@ ALTER TABLE incidents
 **更新ファイル：**
 - `src/components/Navbar.tsx` — 「連絡先」リンクを追加
 
+#### 3. スマホ表示のレイアウト崩れ修正
+
+- 電話番号ラベルを「電話番号（ハイフンなし）」に短縮
+- 現場担当者・電話番号の行をモバイルで縦積み、PC幅（sm以上）で横並びに変更（`grid-cols-1 sm:grid-cols-2`）
+- 対象ファイル：`src/app/(app)/incidents/new/page.tsx`、`src/app/(app)/incidents/[id]/IncidentActions.tsx`
+
 ---
 
 ## Key Conventions
