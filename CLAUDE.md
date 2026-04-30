@@ -261,6 +261,34 @@ node scripts/bulk-invite-production.js
 - `NEXT_PUBLIC_SUPABASE_URL`・`SUPABASE_SERVICE_ROLE_KEY`・SMTP 関連の環境変数が必要
 - スクリプトは Vercel にデプロイされないローカル専用ツール
 
+### 2026-04-30
+
+#### 1. 案件・対応履歴の編集・削除機能追加
+
+投稿者本人と管理者が自分の投稿を編集・削除できるようになった。
+
+**追加ファイル：**
+- `src/app/api/incidents/[id]/route.ts` — PATCH（編集）/ DELETE（削除）エンドポイント
+- `src/app/(app)/incidents/[id]/IncidentActions.tsx` — 案件ヘッダー + インライン編集フォーム（クライアント）
+
+**更新ファイル：**
+- `src/app/api/responses/[id]/route.ts` — PATCH（編集）を追加（DELETE は既存）
+- `src/app/(app)/incidents/[id]/ResponseList.tsx` — インライン編集フォームを追加
+- `src/app/(app)/incidents/[id]/page.tsx` — 案件ヘッダー部分を `IncidentActions` コンポーネントに切り出し
+
+権限ルール：投稿者本人と管理者のみ編集・削除可能。案件削除時は紐付く対応履歴も CASCADE 削除。
+
+#### 2. 招待メールにパスワードを記載
+
+これまでの招待メール（Supabase デフォルト）にはパスワードが含まれておらず、招待されたユーザーがログインできない問題があった。
+
+**対応：** nodemailer + Brevo SMTP を使い、アカウント作成後に独自のログイン情報メールを送信するよう変更。
+
+- **追加ファイル：** `src/lib/mailer.ts`（`sendInviteEmail` 関数）
+- **更新ファイル：** `src/app/api/admin/invite/route.ts`（`sendInviteEmail` 呼び出しを追加）
+- **必要な環境変数：** `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` / `SMTP_FROM`
+- Vercel への環境変数追加場所：プロジェクト（vercel-test）→ Settings → Environment Variables（チーム全体の設定ではない）
+
 ---
 
 ## Key Conventions
