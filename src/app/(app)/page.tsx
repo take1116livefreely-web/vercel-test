@@ -2,16 +2,25 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { parseTags } from '@/lib/tags'
 import TagBadge from '@/components/TagBadge'
+import StatusBadge from '@/components/StatusBadge'
 import SimpleNav from '@/components/SimpleNav'
 import Pagination from '@/components/Pagination'
 
 const PAGE_SIZE = 20
 
-type Props = { searchParams: { q?: string; page?: string } }
+type Props = { searchParams: { q?: string; page?: string; status?: string } }
+
+const STATUS_TABS = [
+  { value: '', label: 'すべて' },
+  { value: 'open', label: '未対応' },
+  { value: 'in_progress', label: '対応中' },
+  { value: 'closed', label: '解決済み' },
+]
 
 export default async function HomePage({ searchParams }: Props) {
   const supabase = createClient()
   const query = searchParams.q ?? ''
+  const statusFilter = searchParams.status ?? ''
   const tags = parseTags(query)
   const page = Math.max(1, Number(searchParams.page ?? 1))
   const from = (page - 1) * PAGE_SIZE
@@ -32,6 +41,11 @@ export default async function HomePage({ searchParams }: Props) {
     incidentsQuery = incidentsQuery.contains('tags', tags)
   }
 
+  if (statusFilter) {
+    countQuery = countQuery.eq('status', statusFilter)
+    incidentsQuery = incidentsQuery.eq('status', statusFilter)
+  }
+
   const [{ count }, { data: incidentsRaw }] = await Promise.all([
     countQuery,
     incidentsQuery,
@@ -41,6 +55,13 @@ export default async function HomePage({ searchParams }: Props) {
   const totalCount = count ?? 0
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE))
   const currentPage = Math.min(page, totalPages)
+
+  function tabHref(s: string) {
+    const p = new URLSearchParams()
+    if (query) p.set('q', query)
+    if (s) p.set('status', s)
+    return `/?${p.toString()}`
+  }
 
   return (
     <div>
@@ -56,6 +77,7 @@ export default async function HomePage({ searchParams }: Props) {
 
       {/* 検索バー */}
       <form method="get" className="mb-2">
+        {statusFilter && <input type="hidden" name="status" value={statusFilter} />}
         <div className="flex gap-2">
           <input
             type="text"
@@ -76,12 +98,29 @@ export default async function HomePage({ searchParams }: Props) {
           <p className="text-xs text-gray-400">
             ハッシュタグで AND 検索できます（例：#清水 #通信不良）
           </p>
-          <SimpleNav page={currentPage} totalPages={totalPages} query={query} />
+          <SimpleNav page={currentPage} totalPages={totalPages} query={query} status={statusFilter || undefined} />
         </div>
       </form>
 
+      {/* ステータスタブ */}
+      <div className="flex gap-1 mb-4 border-b border-gray-200">
+        {STATUS_TABS.map((tab) => (
+          <Link
+            key={tab.value}
+            href={tabHref(tab.value)}
+            className={`px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+              statusFilter === tab.value
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            {tab.label}
+          </Link>
+        ))}
+      </div>
+
       {/* 総件数 */}
-      <div className="mt-5 mb-3">
+      <div className="mb-3">
         {totalCount === 0 ? (
           <p className="text-sm text-gray-400">
             {query ? `「${query}」の検索結果：0 件` : '案件が登録されていません'}
@@ -107,8 +146,11 @@ export default async function HomePage({ searchParams }: Props) {
           >
             <div className="flex items-start justify-between gap-2">
               <div className="flex-1 min-w-0">
-                <p className="font-semibold text-gray-800 truncate">{inc.title}</p>
-                <p className="text-sm text-gray-500 mt-0.5">
+                <div className="flex items-center gap-2 mb-0.5">
+                  <p className="font-semibold text-gray-800 truncate">{inc.title}</p>
+                  <StatusBadge status={inc.status ?? 'open'} />
+                </div>
+                <p className="text-sm text-gray-500">
                   {inc.general_contractor}　／　{inc.site_name}
                 </p>
               </div>
@@ -126,7 +168,7 @@ export default async function HomePage({ searchParams }: Props) {
       </div>
 
       {/* 下部ページネーション */}
-      <Pagination page={currentPage} totalPages={totalPages} query={query} />
+      <Pagination page={currentPage} totalPages={totalPages} query={query} status={statusFilter || undefined} />
     </div>
   )
 }

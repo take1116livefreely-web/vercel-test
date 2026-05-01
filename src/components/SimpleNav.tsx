@@ -4,23 +4,25 @@ type Props = {
   page: number
   totalPages: number
   query: string
+  status?: string
 }
 
-function href(page: number, query: string) {
+function href(page: number, query: string, status?: string) {
   const params = new URLSearchParams()
   if (query) params.set('q', query)
+  if (status) params.set('status', status)
   params.set('page', String(page))
   return `/?${params.toString()}`
 }
 
-export default function SimpleNav({ page, totalPages, query }: Props) {
+export default function SimpleNav({ page, totalPages, query, status }: Props) {
   if (totalPages <= 1) return null
 
   return (
     <div className="flex items-center gap-1">
       {page > 1 ? (
         <Link
-          href={href(page - 1, query)}
+          href={href(page - 1, query, status)}
           className="px-3 py-1 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700"
         >
           ← 前へ
@@ -32,7 +34,7 @@ export default function SimpleNav({ page, totalPages, query }: Props) {
       )}
       {page < totalPages ? (
         <Link
-          href={href(page + 1, query)}
+          href={href(page + 1, query, status)}
           className="px-3 py-1 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700"
         >
           次へ →

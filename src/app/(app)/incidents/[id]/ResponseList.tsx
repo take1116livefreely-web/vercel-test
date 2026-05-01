@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import TagBadge from '@/components/TagBadge'
+import TagInput from '@/components/TagInput'
 import FileList from '@/components/FileList'
 import FileUpload from '@/components/FileUpload'
 import type { IncidentFile } from '@/lib/supabase/types'
@@ -98,9 +99,9 @@ export default function ResponseList({ responses, currentUserId, isAdmin }: Prop
                   rows={4}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                 />
-                <input
+                <TagInput
                   value={editTagInput}
-                  onChange={(e) => setEditTagInput(e.target.value)}
+                  onChange={setEditTagInput}
                   placeholder="#タグ1 #タグ2"
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />

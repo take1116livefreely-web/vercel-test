@@ -3,10 +3,14 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import TagBadge from '@/components/TagBadge'
+import StatusBadge from '@/components/StatusBadge'
+import TagInput from '@/components/TagInput'
 import FileList from '@/components/FileList'
 import FileUpload from '@/components/FileUpload'
 import { formatPhone } from '@/lib/phone'
 import type { IncidentFile } from '@/lib/supabase/types'
+
+type Status = 'open' | 'in_progress' | 'closed'
 
 type Incident = {
   id: string
@@ -17,6 +21,7 @@ type Incident = {
   phone_number: string | null
   content: string
   tags: string[]
+  status: Status
   created_at: string
   creator: { name: string } | null
 }
@@ -28,6 +33,12 @@ type Props = {
   currentUserId: string
   isAdmin: boolean
 }
+
+const STATUS_OPTIONS: { value: Status; label: string }[] = [
+  { value: 'open', label: '未対応' },
+  { value: 'in_progress', label: '対応中' },
+  { value: 'closed', label: '解決済み' },
+]
 
 export default function IncidentActions({ incident, canEdit, initialFiles, currentUserId, isAdmin }: Props) {
   const [editing, setEditing] = useState(false)
@@ -43,6 +54,8 @@ export default function IncidentActions({ incident, canEdit, initialFiles, curre
   )
   const [siteContact, setSiteContact] = useState(incident.site_contact ?? '')
   const [phoneNumber, setPhoneNumber] = useState(incident.phone_number ?? '')
+  const [status, setStatus] = useState<Status>(incident.status)
+  const [statusChanging, setStatusChanging] = useState(false)
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [files, setFiles] = useState<IncidentFile[]>(initialFiles)
@@ -75,6 +88,23 @@ export default function IncidentActions({ incident, canEdit, initialFiles, curre
       setDeleting(false)
       const json = await res.json()
       alert(json.error ?? '削除に失敗しました')
+    }
+  }
+
+  async function handleStatusChange(newStatus: Status) {
+    setStatusChanging(true)
+    const res = await fetch(`/api/incidents/${incident.id}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: newStatus }),
+    })
+    setStatusChanging(false)
+    if (res.ok) {
+      setStatus(newStatus)
+      router.refresh()
+    } else {
+      const json = await res.json()
+      alert(json.error ?? 'ステータス変更に失敗しました')
     }
   }
 
@@ -114,7 +144,12 @@ export default function IncidentActions({ incident, canEdit, initialFiles, curre
         </div>
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">追加タグ</label>
-          <input value={tagInput} onChange={(e) => setTagInput(e.target.value)} placeholder="#タグ1 #タグ2" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          <TagInput
+            value={tagInput}
+            onChange={setTagInput}
+            placeholder="#タグ1 #タグ2"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
         </div>
         <div className="flex gap-2">
           <button onClick={handleSave} disabled={saving} className="text-sm bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg">
@@ -144,6 +179,24 @@ export default function IncidentActions({ incident, canEdit, initialFiles, curre
           )}
         </div>
       </div>
+
+      {/* ステータス */}
+      <div className="flex items-center gap-2 mb-3">
+        <StatusBadge status={status} />
+        <div className="flex gap-1">
+          {STATUS_OPTIONS.filter((o) => o.value !== status).map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => handleStatusChange(opt.value)}
+              disabled={statusChanging}
+              className="text-xs text-gray-500 hover:text-blue-600 px-2 py-0.5 rounded border border-gray-200 hover:border-blue-300 disabled:opacity-50"
+            >
+              {opt.label}へ
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="text-sm text-gray-600 mb-3 space-y-1">
         <p><span className="font-medium">ゼネコン：</span>{incident.general_contractor}</p>
         <p><span className="font-medium">現場：</span>{incident.site_name}</p>

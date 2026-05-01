@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { parseTags } from '@/lib/tags'
+import TagInput from '@/components/TagInput'
 
 type Props = { incidentId: string; userId: string }
 
@@ -46,9 +47,9 @@ export default function ResponseForm({ incidentId, userId }: Props) {
         rows={3}
         className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none mb-2"
       />
-      <input
+      <TagInput
         value={tagInput}
-        onChange={(e) => setTagInput(e.target.value)}
+        onChange={setTagInput}
         placeholder="#モバイル　#対応済み　など（任意）"
         className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 mb-2"
       />

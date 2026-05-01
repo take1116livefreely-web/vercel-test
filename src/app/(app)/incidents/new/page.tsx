@@ -4,12 +4,14 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { parseTags, buildTagsFromIncident } from '@/lib/tags'
+import TagInput from '@/components/TagInput'
 
 export default function NewIncidentPage() {
   const router = useRouter()
   const supabase = createClient()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [tagInput, setTagInput] = useState('')
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -24,7 +26,6 @@ export default function NewIncidentPage() {
     const siteContact = (data.get('site_contact') as string) || null
     const phoneNumber = (data.get('phone_number') as string) || null
     const content = data.get('content') as string
-    const tagInput = data.get('tags') as string
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/login'); return }
@@ -83,7 +84,12 @@ export default function NewIncidentPage() {
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">追加タグ（任意）</label>
-          <input name="tags" placeholder="#モバイル　#通信不良　など" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          <TagInput
+            value={tagInput}
+            onChange={setTagInput}
+            placeholder="#モバイル　#通信不良　など"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
           <p className="text-xs text-gray-400 mt-1">ゼネコン名・現場名は自動でタグに追加されます</p>
         </div>
         {error && <p className="text-sm text-red-600">{error}</p>}

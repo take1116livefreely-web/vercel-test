@@ -7,6 +7,7 @@ export type Database = {
         Row: { id: string; name: string; role: UserRole; created_at: string }
         Insert: { id: string; name: string; role?: UserRole }
         Update: { name?: string; role?: UserRole }
+        Relationships: []
       }
       incidents: {
         Row: {
@@ -20,6 +21,9 @@ export type Database = {
           created_by: string
           created_at: string
           tags: string[]
+          status: 'open' | 'in_progress' | 'closed'
+          closed_at: string | null
+          closed_by: string | null
         }
         Insert: {
           title: string
@@ -30,8 +34,21 @@ export type Database = {
           content: string
           created_by: string
           tags?: string[]
+          status?: 'open' | 'in_progress' | 'closed'
         }
-        Update: { tags?: string[] }
+        Update: {
+          title?: string
+          general_contractor?: string
+          site_name?: string
+          site_contact?: string | null
+          phone_number?: string | null
+          content?: string
+          tags?: string[]
+          status?: 'open' | 'in_progress' | 'closed'
+          closed_at?: string | null
+          closed_by?: string | null
+        }
+        Relationships: []
       }
       responses: {
         Row: {
@@ -48,9 +65,17 @@ export type Database = {
           responder_id: string
           tags?: string[]
         }
-        Update: never
+        Update: {
+          content?: string
+          tags?: string[]
+        }
+        Relationships: []
       }
     }
+    Views: { [_ in never]: never }
+    Functions: { [_ in never]: never }
+    Enums: { [_ in never]: never }
+    CompositeTypes: { [_ in never]: never }
   }
 }
 

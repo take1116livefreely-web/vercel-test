@@ -4,11 +4,13 @@ type Props = {
   page: number
   totalPages: number
   query: string
+  status?: string
 }
 
-function href(page: number, query: string) {
+function href(page: number, query: string, status?: string) {
   const params = new URLSearchParams()
   if (query) params.set('q', query)
+  if (status) params.set('status', status)
   params.set('page', String(page))
   return `/?${params.toString()}`
 }
@@ -29,7 +31,7 @@ function pageNumbers(current: number, total: number): (number | '...')[] {
   return pages
 }
 
-export default function Pagination({ page, totalPages, query }: Props) {
+export default function Pagination({ page, totalPages, query, status }: Props) {
   if (totalPages <= 1) return null
 
   const pages = pageNumbers(page, totalPages)
@@ -38,7 +40,7 @@ export default function Pagination({ page, totalPages, query }: Props) {
     <div className="flex items-center justify-center gap-1 mt-8 mb-4">
       {page > 1 ? (
         <Link
-          href={href(page - 1, query)}
+          href={href(page - 1, query, status)}
           className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700"
         >
           ← 前へ
@@ -64,7 +66,7 @@ export default function Pagination({ page, totalPages, query }: Props) {
         ) : (
           <Link
             key={p}
-            href={href(p, query)}
+            href={href(p, query, status)}
             className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700"
           >
             {p}
@@ -74,7 +76,7 @@ export default function Pagination({ page, totalPages, query }: Props) {
 
       {page < totalPages ? (
         <Link
-          href={href(page + 1, query)}
+          href={href(page + 1, query, status)}
           className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700"
         >
           次へ →

@@ -65,7 +65,9 @@ users（ユーザー）
   id (= auth.users.id), name, role (admin | member), created_at
 
 incidents（案件）
-  id, title, general_contractor, site_name, created_by (→ users.id), created_at, tags[]
+  id, title, general_contractor, site_name, site_contact, phone_number,
+  created_by (→ users.id), created_at, tags[],
+  status ('open' | 'in_progress' | 'closed'), closed_at, closed_by (→ users.id)
 
 responses（対応履歴）
   id, incident_id (→ incidents.id), content, responder (→ users.id), created_at, tags[]
@@ -382,6 +384,61 @@ ALTER TABLE incidents
 - 電話番号ラベルを「電話番号（ハイフンなし）」に短縮
 - 現場担当者・電話番号の行をモバイルで縦積み、PC幅（sm以上）で横並びに変更（`grid-cols-1 sm:grid-cols-2`）
 - 対象ファイル：`src/app/(app)/incidents/new/page.tsx`、`src/app/(app)/incidents/[id]/IncidentActions.tsx`
+
+#### 4. ステータス管理
+
+案件に `open` / `in_progress` / `closed` の3段階ステータスを追加。
+
+**要 Supabase migration（未実施の場合は SQL Editor で実行）：**
+```sql
+ALTER TABLE incidents
+  ADD COLUMN status text NOT NULL DEFAULT 'open' CHECK (status IN ('open','in_progress','closed')),
+  ADD COLUMN closed_at timestamptz,
+  ADD COLUMN closed_by uuid REFERENCES auth.users(id);
+```
+
+**仕様：**
+- 新規案件登録時は `open` がデフォルト
+- 案件詳細画面でステータスバッジと変更ボタンを表示（認証済みユーザー全員が変更可）
+- `closed` にすると `closed_at` と `closed_by` が自動記録される。再 open すると両フィールドを NULL にクリア
+- 案件一覧にステータスバッジ表示＋タブでフィルタリング（すべて / 未対応 / 対応中 / 解決済み）
+
+**追加ファイル：**
+
+| ファイル | 役割 |
+|---|---|
+| `src/components/StatusBadge.tsx` | ステータスに対応した色付きバッジ |
+| `src/app/api/incidents/[id]/status/route.ts` | ステータス変更 PATCH エンドポイント |
+
+**更新ファイル：**
+- `src/lib/supabase/types.ts` — `status`, `closed_at`, `closed_by` フィールド追加、Supabase v2.45+ が要求する `Relationships`/`Views`/`Functions`/`Enums`/`CompositeTypes` フィールドを追加
+- `src/app/(app)/page.tsx` — ステータスタブ・バッジ追加、status フィルタクエリ
+- `src/app/(app)/incidents/[id]/IncidentActions.tsx` — ステータス表示・変更 UI
+- `src/app/(app)/incidents/[id]/page.tsx` — `status` を IncidentActions に渡す
+- `src/components/Pagination.tsx` / `src/components/SimpleNav.tsx` — `status` クエリパラメータをページネーション URL に保持
+
+#### 5. タグサジェスト
+
+タグ入力欄で `#XX`（2文字以上）を入力するとドロップダウンに既存タグ候補が表示される。
+
+**追加ファイル：**
+
+| ファイル | 役割 |
+|---|---|
+| `src/components/TagInput.tsx` | タグサジェスト付きコントロールド入力コンポーネント |
+| `src/app/api/tags/route.ts` | GET — incidents/responses 全タグを重複排除して返す |
+
+**更新ファイル（TagInput への置き換え）：**
+- `src/app/(app)/incidents/new/page.tsx`
+- `src/app/(app)/incidents/[id]/IncidentActions.tsx`（編集フォーム）
+- `src/app/(app)/incidents/[id]/ResponseForm.tsx`
+- `src/app/(app)/incidents/[id]/ResponseList.tsx`（インライン編集フォーム）
+
+**TagInput の仕様：**
+- `/api/tags` をマウント時に1回 fetch してキャッシュ
+- `#` で始まるトークンの2文字目から前方一致検索、最大8候補
+- すでに入力済みのタグは候補から除外
+- `onBlur` + `setTimeout(150ms)` でクリック前にドロップダウンが消えないようにする
 
 ---
 
