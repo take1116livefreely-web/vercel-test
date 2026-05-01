@@ -1,12 +1,15 @@
 'use client'
 
 import { useState } from 'react'
+import type { UserRole } from '@/lib/supabase/types'
 
-export default function InviteForm() {
+type Props = { currentUserRole: UserRole }
+
+export default function InviteForm({ currentUserRole }: Props) {
   const [email, setEmail] = useState('')
   const [name, setName] = useState('')
   const [password, setPassword] = useState('')
-  const [role, setRole] = useState<'member' | 'admin'>('member')
+  const [role, setRole] = useState<UserRole>('member')
   const [status, setStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
   const [message, setMessage] = useState('')
 
@@ -68,11 +71,14 @@ export default function InviteForm() {
         <label className="block text-sm font-medium text-gray-700 mb-1">権限</label>
         <select
           value={role}
-          onChange={(e) => setRole(e.target.value as 'member' | 'admin')}
+          onChange={(e) => setRole(e.target.value as UserRole)}
           className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           <option value="member">メンバー</option>
           <option value="admin">管理者</option>
+          {currentUserRole === 'developer' && (
+            <option value="developer">開発者</option>
+          )}
         </select>
       </div>
       {message && (

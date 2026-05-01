@@ -22,7 +22,7 @@ export default function Navbar({ user }: { user: AppUser }) {
         <Link href="/contacts" className="text-sm text-gray-600 hover:text-blue-600">
           連絡先
         </Link>
-        {user.role === 'admin' && (
+        {(user.role === 'admin' || user.role === 'developer') && (
           <>
             <Link href="/admin/categories" className="text-sm text-gray-600 hover:text-blue-600">
               カテゴリ管理

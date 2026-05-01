@@ -29,7 +29,7 @@ export default async function IncidentPage({ params }: Props) {
   if (!incident) notFound()
 
   const { data: appUser } = await supabase.from('users').select('role').eq('id', user!.id).single()
-  const isAdmin = (appUser as { role: string } | null)?.role === 'admin'
+  const isAdmin = ['admin', 'developer'].includes((appUser as { role: string } | null)?.role ?? '')
   const canEdit = isAdmin || incident.created_by === user!.id
 
   const responseIds = (responses ?? []).map((r: any) => r.id)

@@ -9,7 +9,7 @@ async function getPermission(incidentId: string, userId: string) {
   const { data: incident } = await admin.from('incidents').select('created_by').eq('id', incidentId).single()
   if (!incident) return { allowed: false, notFound: true }
   const { data: appUser } = await supabase.from('users').select('role').eq('id', userId).single()
-  const isAdmin = (appUser as { role: string } | null)?.role === 'admin'
+  const isAdmin = ['admin', 'developer'].includes((appUser as { role: string } | null)?.role ?? '')
   const isOwner = (incident as { created_by: string }).created_by === userId
   return { allowed: isAdmin || isOwner, notFound: false }
 }

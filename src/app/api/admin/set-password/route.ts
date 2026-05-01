@@ -8,7 +8,8 @@ export async function POST(request: Request) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { data: appUser } = await supabase.from('users').select('role').eq('id', user.id).single()
-  if ((appUser as { role: string } | null)?.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  const callerRole = (appUser as { role: string } | null)?.role
+  if (callerRole !== 'admin' && callerRole !== 'developer') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const { userId, password } = await request.json()
   if (!userId || !password) return NextResponse.json({ error: 'userId と password は必須です' }, { status: 400 })

@@ -93,6 +93,12 @@ alter table public.incidents
   add column if not exists category text,
   add column if not exists device text;
 
+-- developer ロールを追加
+alter table public.users
+  drop constraint if exists users_role_check;
+alter table public.users
+  add constraint users_role_check check (role in ('admin', 'member', 'developer'));
+
 -- incidents に案件種別カラムを追加
 alter table public.incidents
   add column if not exists incident_type text not null default 'trouble'

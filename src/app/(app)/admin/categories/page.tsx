@@ -10,7 +10,7 @@ export default async function AdminCategoriesPage() {
 
   const result = await supabase.from('users').select('role').eq('id', user.id).single()
   const appUser = result.data as { role: string } | null
-  if (appUser?.role !== 'admin') redirect('/')
+  if (appUser?.role !== 'admin' && appUser?.role !== 'developer') redirect('/')
 
   const categories = await fetchCategoriesWithSystems()
 
