@@ -3,18 +3,22 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import TagBadge from '@/components/TagBadge'
+import FileList from '@/components/FileList'
+import FileUpload from '@/components/FileUpload'
+import type { IncidentFile } from '@/lib/supabase/types'
 
-type Response = {
+type ResponseWithFiles = {
   id: string
   content: string
   responder_id: string
   created_at: string
   tags: string[]
   responder: { name: string } | null
+  files: IncidentFile[]
 }
 
 type Props = {
-  responses: Response[]
+  responses: ResponseWithFiles[]
   currentUserId: string
   isAdmin: boolean
 }
@@ -24,9 +28,12 @@ export default function ResponseList({ responses, currentUserId, isAdmin }: Prop
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editContent, setEditContent] = useState('')
   const [editTagInput, setEditTagInput] = useState('')
+  const [filesMap, setFilesMap] = useState<Record<string, IncidentFile[]>>(
+    Object.fromEntries(responses.map((r) => [r.id, r.files]))
+  )
   const router = useRouter()
 
-  function startEdit(res: Response) {
+  function startEdit(res: ResponseWithFiles) {
     setEditingId(res.id)
     setEditContent(res.content)
     setEditTagInput(res.tags.map((t) => `#${t}`).join(' '))
@@ -64,6 +71,7 @@ export default function ResponseList({ responses, currentUserId, isAdmin }: Prop
     <div className="space-y-3 mb-6">
       {responses.map((res) => {
         const canEdit = isAdmin || res.responder_id === currentUserId
+        const resFiles = filesMap[res.id] ?? []
         return (
           <div key={res.id} className="bg-white rounded-xl border border-gray-200 p-4 ml-6">
             <div className="flex items-center justify-between mb-2">
@@ -111,6 +119,29 @@ export default function ResponseList({ responses, currentUserId, isAdmin }: Prop
                 )}
               </>
             )}
+            <div className="border-t border-gray-100 mt-3 pt-2">
+              <FileList
+                files={resFiles}
+                currentUserId={currentUserId}
+                isAdmin={isAdmin}
+                onDeleted={(id) =>
+                  setFilesMap((prev) => ({
+                    ...prev,
+                    [res.id]: prev[res.id].filter((f) => f.id !== id),
+                  }))
+                }
+              />
+              <FileUpload
+                responseId={res.id}
+                currentCount={resFiles.length}
+                onUploaded={(f) =>
+                  setFilesMap((prev) => ({
+                    ...prev,
+                    [res.id]: [...(prev[res.id] ?? []), f],
+                  }))
+                }
+              />
+            </div>
           </div>
         )
       })}

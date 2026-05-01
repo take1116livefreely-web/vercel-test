@@ -57,3 +57,15 @@ export type Database = {
 export type Incident = Database['public']['Tables']['incidents']['Row']
 export type Response = Database['public']['Tables']['responses']['Row']
 export type AppUser = Database['public']['Tables']['users']['Row']
+
+export type IncidentFile = {
+  id: string
+  incident_id: string | null
+  response_id: string | null
+  storage_path: string
+  name: string
+  mime_type: string
+  size: number
+  uploaded_by: string
+  created_at: string
+}

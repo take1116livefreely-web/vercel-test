@@ -3,7 +3,10 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import TagBadge from '@/components/TagBadge'
+import FileList from '@/components/FileList'
+import FileUpload from '@/components/FileUpload'
 import { formatPhone } from '@/lib/phone'
+import type { IncidentFile } from '@/lib/supabase/types'
 
 type Incident = {
   id: string
@@ -18,9 +21,15 @@ type Incident = {
   creator: { name: string } | null
 }
 
-type Props = { incident: Incident; canEdit: boolean }
+type Props = {
+  incident: Incident
+  canEdit: boolean
+  initialFiles: IncidentFile[]
+  currentUserId: string
+  isAdmin: boolean
+}
 
-export default function IncidentActions({ incident, canEdit }: Props) {
+export default function IncidentActions({ incident, canEdit, initialFiles, currentUserId, isAdmin }: Props) {
   const [editing, setEditing] = useState(false)
   const [title, setTitle] = useState(incident.title)
   const [contractor, setContractor] = useState(incident.general_contractor)
@@ -36,6 +45,7 @@ export default function IncidentActions({ incident, canEdit }: Props) {
   const [phoneNumber, setPhoneNumber] = useState(incident.phone_number ?? '')
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [files, setFiles] = useState<IncidentFile[]>(initialFiles)
   const router = useRouter()
 
   async function handleSave() {
@@ -149,10 +159,23 @@ export default function IncidentActions({ incident, canEdit }: Props) {
         {incident.content}
       </div>
       {incident.tags.length > 0 && (
-        <div className="flex flex-wrap gap-1">
+        <div className="flex flex-wrap gap-1 mb-3">
           {incident.tags.map((tag) => <TagBadge key={tag} tag={tag} />)}
         </div>
       )}
+      <div className="border-t border-gray-100 pt-3">
+        <FileList
+          files={files}
+          currentUserId={currentUserId}
+          isAdmin={isAdmin}
+          onDeleted={(id) => setFiles((prev) => prev.filter((f) => f.id !== id))}
+        />
+        <FileUpload
+          incidentId={incident.id}
+          currentCount={files.length}
+          onUploaded={(f) => setFiles((prev) => [...prev, f])}
+        />
+      </div>
     </div>
   )
 }
