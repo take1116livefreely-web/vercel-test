@@ -20,17 +20,13 @@ export async function POST(request: Request) {
   const origin = new URL(request.url).origin
   const admin = createAdminClient()
 
-  // アカウント作成（招待メールは Supabase が送るが、リンクは使わなくてよい）
-  const { data, error } = await admin.auth.admin.inviteUserByEmail(email, {
-    redirectTo: `${origin}/auth/callback`,
-  })
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-
-  // 仮パスワードをすぐに設定（メールリンク不要でログイン可能にする）
-  await admin.auth.admin.updateUserById(data.user.id, {
+  // createUser で作成（inviteUserByEmail は Supabase 側のメールを送ってしまうため使わない）
+  const { data, error } = await admin.auth.admin.createUser({
+    email,
     password,
     email_confirm: true,
   })
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   const { error: upsertError } = await admin
     .from('users')
