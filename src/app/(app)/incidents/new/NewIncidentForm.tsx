@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { parseTags, buildTagsFromIncident } from '@/lib/tags'
@@ -19,6 +19,41 @@ export default function NewIncidentForm({ categories }: Props) {
   const [category, setCategory] = useState('')
   const [device, setDevice] = useState('')
   const [incidentType, setIncidentType] = useState<'trouble' | 'other'>('trouble')
+  const [generalContractor, setGeneralContractor] = useState('')
+  const [siteName, setSiteName] = useState('')
+  const [siteContact, setSiteContact] = useState('')
+  const [phoneNumber, setPhoneNumber] = useState('')
+  const [phoneAutoFilled, setPhoneAutoFilled] = useState(false)
+
+  // ref で最新値を保持（effect の stale closure 対策）
+  const phoneNumberRef = useRef('')
+  const phoneWasAutoFilledRef = useRef(false)
+  useEffect(() => { phoneNumberRef.current = phoneNumber }, [phoneNumber])
+
+  // ゼネコン名 + 現場名 + 現場担当者が揃ったら電話番号を照合・自動反映
+  useEffect(() => {
+    if (!generalContractor.trim() || !siteName.trim() || !siteContact.trim()) return
+    const timer = setTimeout(async () => {
+      const { data } = await supabase
+        .from('incidents')
+        .select('phone_number')
+        .eq('general_contractor', generalContractor.trim())
+        .eq('site_name', siteName.trim())
+        .eq('site_contact', siteContact.trim())
+        .not('phone_number', 'is', null)
+        .limit(10) as any
+      if (!data?.length) return
+      const phones = [...new Set((data as { phone_number: string | null }[]).map(d => d.phone_number).filter(Boolean))] as string[]
+      // 候補が1件だけ、かつ未入力 or 前回の自動入力値の場合のみ反映
+      if (phones.length === 1 && (!phoneNumberRef.current || phoneWasAutoFilledRef.current)) {
+        phoneWasAutoFilledRef.current = true
+        setPhoneAutoFilled(true)
+        setPhoneNumber(phones[0])
+      }
+    }, 400)
+    return () => clearTimeout(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [generalContractor, siteName, siteContact])
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -28,10 +63,6 @@ export default function NewIncidentForm({ categories }: Props) {
     const form = e.currentTarget
     const data = new FormData(form)
     const title = data.get('title') as string
-    const generalContractor = data.get('general_contractor') as string
-    const siteName = data.get('site_name') as string
-    const siteContact = (data.get('site_contact') as string) || null
-    const phoneNumber = (data.get('phone_number') as string) || null
     const content = data.get('content') as string
 
     const { data: { user } } = await supabase.auth.getUser()
@@ -40,23 +71,23 @@ export default function NewIncidentForm({ categories }: Props) {
     const extraTags = parseTags(tagInput)
     const tags = buildTagsFromIncident(generalContractor, siteName, extraTags)
 
-    const { data: incident, error: err } = await supabase
+    const { data: incident, error: err } = await (supabase
       .from('incidents')
       .insert({
         title, general_contractor: generalContractor, site_name: siteName,
-        site_contact: siteContact, phone_number: phoneNumber, content,
+        site_contact: siteContact || null, phone_number: phoneNumber || null, content,
         created_by: user.id, tags,
         category: category || null,
         device: device || null,
         incident_type: incidentType,
       })
       .select('id')
-      .single()
+      .single() as any)
 
     if (err) {
       setError('登録に失敗しました。もう一度お試しください。')
     } else {
-      router.push(`/incidents/${incident.id}`)
+      router.push(`/incidents/${(incident as { id: string }).id}`)
     }
     setLoading(false)
   }
@@ -74,11 +105,21 @@ export default function NewIncidentForm({ categories }: Props) {
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">ゼネコン名 <span className="text-red-500">*</span></label>
-            <input name="general_contractor" required className={selectCls} />
+            <input
+              value={generalContractor}
+              onChange={(e) => setGeneralContractor(e.target.value)}
+              required
+              className={selectCls}
+            />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">現場名 <span className="text-red-500">*</span></label>
-            <input name="site_name" required className={selectCls} />
+            <input
+              value={siteName}
+              onChange={(e) => setSiteName(e.target.value)}
+              required
+              className={selectCls}
+            />
           </div>
         </div>
 
@@ -118,13 +159,31 @@ export default function NewIncidentForm({ categories }: Props) {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">現場担当者</label>
             <div className="flex items-center gap-2">
-              <input name="site_contact" className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <input
+                value={siteContact}
+                onChange={(e) => setSiteContact(e.target.value)}
+                className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
               <span className="text-sm text-gray-700 shrink-0">様</span>
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">電話番号（ハイフンなし）</label>
-            <input name="phone_number" type="tel" className={selectCls} />
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              電話番号（ハイフンなし）
+              {phoneAutoFilled && (
+                <span className="ml-2 text-xs font-normal text-blue-500">自動入力</span>
+              )}
+            </label>
+            <input
+              value={phoneNumber}
+              onChange={(e) => {
+                setPhoneNumber(e.target.value)
+                phoneWasAutoFilledRef.current = false
+                setPhoneAutoFilled(false)
+              }}
+              type="tel"
+              className={selectCls}
+            />
           </div>
         </div>
 
