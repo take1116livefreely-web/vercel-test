@@ -19,8 +19,15 @@ const ROLE_BADGE: Record<UserRole, { label: string; cls: string }> = {
   member:    { label: 'メンバー', cls: 'bg-gray-100 text-gray-600' },
 }
 
+const ROLE_OPTIONS: { value: UserRole; label: string }[] = [
+  { value: 'member', label: 'メンバー' },
+  { value: 'admin', label: '管理者' },
+  { value: 'developer', label: '開発者' },
+]
+
 export default function UserList({ users, currentUserId, currentUserRole }: Props) {
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [changingRoleId, setChangingRoleId] = useState<string | null>(null)
   const router = useRouter()
 
   async function handleDelete(userId: string, name: string) {
@@ -40,6 +47,23 @@ export default function UserList({ users, currentUserId, currentUserRole }: Prop
     }
   }
 
+  async function handleRoleChange(userId: string, name: string, newRole: UserRole) {
+    if (!confirm(`「${name}」の権限を「${ROLE_BADGE[newRole].label}」に変更しますか？`)) return
+    setChangingRoleId(userId)
+    const res = await fetch('/api/admin/change-role', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, role: newRole }),
+    })
+    setChangingRoleId(null)
+    if (res.ok) {
+      router.refresh()
+    } else {
+      const json = await res.json()
+      alert(json.error ?? '権限変更に失敗しました')
+    }
+  }
+
   return (
     <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
       {users.length === 0 && (
@@ -47,22 +71,37 @@ export default function UserList({ users, currentUserId, currentUserRole }: Prop
       )}
       {users.map((u) => {
         const badge = ROLE_BADGE[u.role] ?? ROLE_BADGE.member
+        const isChangingRole = changingRoleId === u.id
         return (
-          <div key={u.id} className="flex items-center justify-between px-4 py-3">
-            <div>
-              <p className="text-sm font-medium text-gray-800">
+          <div key={u.id} className="flex items-center justify-between px-4 py-3 gap-2">
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-gray-800 truncate">
                 {u.name}
                 {u.id === currentUserId && <span className="ml-1 text-xs text-gray-400">（あなた）</span>}
               </p>
             </div>
-            <div className="flex items-center gap-2">
-              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${badge.cls}`}>
-                {badge.label}
-              </span>
+            <div className="flex items-center gap-2 shrink-0">
+              {/* 開発者：ドロップダウンで権限変更 */}
+              {currentUserRole === 'developer' && u.id !== currentUserId ? (
+                <select
+                  value={u.role}
+                  disabled={isChangingRole}
+                  onChange={(e) => handleRoleChange(u.id, u.name, e.target.value as UserRole)}
+                  className={`text-xs px-2 py-0.5 rounded-full font-medium border cursor-pointer focus:outline-none disabled:opacity-50 ${badge.cls} border-current`}
+                >
+                  {ROLE_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              ) : (
+                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${badge.cls}`}>
+                  {badge.label}
+                </span>
+              )}
               {canDelete(currentUserRole, u, currentUserId) && (
                 <button
                   onClick={() => handleDelete(u.id, u.name)}
-                  disabled={deletingId === u.id}
+                  disabled={deletingId === u.id || isChangingRole}
                   className="text-xs text-red-500 hover:text-red-700 disabled:opacity-50 px-2 py-0.5 rounded border border-red-200 hover:border-red-400"
                 >
                   {deletingId === u.id ? '削除中...' : '削除'}
