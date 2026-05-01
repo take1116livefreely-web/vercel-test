@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import TagBadge from '@/components/TagBadge'
+import { formatPhone } from '@/lib/phone'
 
 type Incident = {
   id: string
@@ -140,7 +141,7 @@ export default function IncidentActions({ incident, canEdit }: Props) {
           <p><span className="font-medium">現場担当者：</span>{incident.site_contact} 様</p>
         )}
         {incident.phone_number && (
-          <p><span className="font-medium">電話番号：</span>{incident.phone_number}</p>
+          <p><span className="font-medium">電話番号：</span>{formatPhone(incident.phone_number)}</p>
         )}
         <p><span className="font-medium">登録者：</span>{incident.creator?.name}</p>
       </div>

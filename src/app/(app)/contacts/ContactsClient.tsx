@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import { formatPhone } from '@/lib/phone'
 
 type Contact = {
   site_contact: string
@@ -75,7 +76,7 @@ export default function ContactsClient({ contacts }: { contacts: Contact[] }) {
                       href={`tel:${c.phone_number}`}
                       className="text-blue-600 hover:text-blue-800 font-mono"
                     >
-                      {c.phone_number}
+                      {formatPhone(c.phone_number)}
                     </a>
                   </td>
                 </tr>
