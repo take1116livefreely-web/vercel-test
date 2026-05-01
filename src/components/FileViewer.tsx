@@ -41,10 +41,13 @@ export default function FileViewer({ file, onClose }: Props) {
   async function handleDownload() {
     const res = await fetch(`/api/files/${file.id}`)
     const json = await res.json()
+    const blob = await fetch(json.url).then((r) => r.blob())
+    const blobUrl = URL.createObjectURL(blob)
     const a = document.createElement('a')
-    a.href = json.url
+    a.href = blobUrl
     a.download = file.name
     a.click()
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 1000)
   }
 
   return (
