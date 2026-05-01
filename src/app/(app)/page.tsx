@@ -8,7 +8,7 @@ import Pagination from '@/components/Pagination'
 
 const PAGE_SIZE = 20
 
-type Props = { searchParams: { q?: string; page?: string; status?: string } }
+type Props = { searchParams: { q?: string; page?: string; status?: string; type?: string } }
 
 const STATUS_TABS = [
   { value: '', label: 'すべて' },
@@ -17,10 +17,17 @@ const STATUS_TABS = [
   { value: 'closed', label: '解決済み' },
 ]
 
+const TYPE_TABS = [
+  { value: '', label: 'すべて' },
+  { value: 'trouble', label: 'トラブル' },
+  { value: 'other', label: 'その他' },
+]
+
 export default async function HomePage({ searchParams }: Props) {
   const supabase = createClient()
   const query = searchParams.q ?? ''
   const statusFilter = searchParams.status ?? ''
+  const typeFilter = searchParams.type ?? ''
   const tags = parseTags(query)
   const page = Math.max(1, Number(searchParams.page ?? 1))
   const from = (page - 1) * PAGE_SIZE
@@ -46,6 +53,11 @@ export default async function HomePage({ searchParams }: Props) {
     incidentsQuery = incidentsQuery.eq('status', statusFilter)
   }
 
+  if (typeFilter) {
+    countQuery = countQuery.eq('incident_type', typeFilter)
+    incidentsQuery = incidentsQuery.eq('incident_type', typeFilter)
+  }
+
   const [{ count }, { data: incidentsRaw }] = await Promise.all([
     countQuery,
     incidentsQuery,
@@ -60,6 +72,15 @@ export default async function HomePage({ searchParams }: Props) {
     const p = new URLSearchParams()
     if (query) p.set('q', query)
     if (s) p.set('status', s)
+    if (typeFilter) p.set('type', typeFilter)
+    return `/?${p.toString()}`
+  }
+
+  function typeTabHref(t: string) {
+    const p = new URLSearchParams()
+    if (query) p.set('q', query)
+    if (statusFilter) p.set('status', statusFilter)
+    if (t) p.set('type', t)
     return `/?${p.toString()}`
   }
 
@@ -103,7 +124,7 @@ export default async function HomePage({ searchParams }: Props) {
       </form>
 
       {/* ステータスタブ */}
-      <div className="flex gap-1 mb-4 border-b border-gray-200">
+      <div className="flex gap-1 mb-2 border-b border-gray-200">
         {STATUS_TABS.map((tab) => (
           <Link
             key={tab.value}
@@ -112,6 +133,27 @@ export default async function HomePage({ searchParams }: Props) {
               statusFilter === tab.value
                 ? 'border-blue-600 text-blue-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            {tab.label}
+          </Link>
+        ))}
+      </div>
+
+      {/* 種別フィルター */}
+      <div className="flex gap-1 mb-4">
+        {TYPE_TABS.map((tab) => (
+          <Link
+            key={tab.value}
+            href={typeTabHref(tab.value)}
+            className={`px-2.5 py-1 text-xs font-medium rounded-full border transition-colors ${
+              typeFilter === tab.value
+                ? tab.value === 'trouble'
+                  ? 'bg-red-50 text-red-600 border-red-300'
+                  : tab.value === 'other'
+                  ? 'bg-gray-100 text-gray-600 border-gray-300'
+                  : 'bg-blue-50 text-blue-600 border-blue-300'
+                : 'text-gray-400 border-gray-200 hover:text-gray-600'
             }`}
           >
             {tab.label}
@@ -149,6 +191,9 @@ export default async function HomePage({ searchParams }: Props) {
                 <div className="flex items-center gap-2 mb-0.5">
                   <p className="font-semibold text-gray-800 truncate">{inc.title}</p>
                   <StatusBadge status={inc.status ?? 'open'} />
+                  {inc.incident_type === 'other' && (
+                    <span className="inline-block text-xs font-medium px-1.5 py-0.5 rounded-full border bg-gray-100 text-gray-500 border-gray-200 shrink-0">その他</span>
+                  )}
                 </div>
                 <p className="text-sm text-gray-500">
                   {inc.general_contractor}　／　{inc.site_name}

@@ -93,6 +93,11 @@ alter table public.incidents
   add column if not exists category text,
   add column if not exists device text;
 
+-- incidents に案件種別カラムを追加
+alter table public.incidents
+  add column if not exists incident_type text not null default 'trouble'
+  check (incident_type in ('trouble', 'other'));
+
 -- =============================================
 -- 初期マスタデータ
 -- =============================================

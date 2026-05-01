@@ -14,6 +14,8 @@ import type { CategoryWithSystems } from '@/lib/categories'
 
 type Status = 'open' | 'in_progress' | 'closed'
 
+type IncidentType = 'trouble' | 'other'
+
 type Incident = {
   id: string
   title: string
@@ -24,6 +26,7 @@ type Incident = {
   content: string
   tags: string[]
   status: Status
+  incident_type: IncidentType
   category: string | null
   device: string | null
   created_at: string
@@ -61,6 +64,7 @@ export default function IncidentActions({ incident, canEdit, initialFiles, curre
   )
   const [siteContact, setSiteContact] = useState(incident.site_contact ?? '')
   const [phoneNumber, setPhoneNumber] = useState(incident.phone_number ?? '')
+  const [incidentType, setIncidentType] = useState<IncidentType>(incident.incident_type)
   const [category, setCategory] = useState(incident.category ?? '')
   const [device, setDevice] = useState(incident.device ?? '')
   const [status, setStatus] = useState<Status>(incident.status)
@@ -81,6 +85,7 @@ export default function IncidentActions({ incident, canEdit, initialFiles, curre
         content, tagInput,
         category: category || null,
         device: device || null,
+        incident_type: incidentType,
       }),
     })
     setSaving(false)
@@ -138,6 +143,25 @@ export default function IncidentActions({ incident, canEdit, initialFiles, curre
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">現場</label>
             <input value={site} onChange={(e) => setSite(e.target.value)} className={selectCls} />
+          </div>
+        </div>
+
+        {/* 案件種別 */}
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">案件種別</label>
+          <div className="flex gap-4">
+            {(['trouble', 'other'] as const).map((t) => (
+              <label key={t} className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  value={t}
+                  checked={incidentType === t}
+                  onChange={() => setIncidentType(t)}
+                  className="accent-blue-600"
+                />
+                <span className="text-sm text-gray-700">{t === 'trouble' ? 'トラブル' : 'その他'}</span>
+              </label>
+            ))}
           </div>
         </div>
 
@@ -203,6 +227,13 @@ export default function IncidentActions({ incident, canEdit, initialFiles, curre
 
       <div className="flex items-center gap-2 mb-3">
         <StatusBadge status={status} />
+        <span className={`inline-block text-xs font-medium px-2 py-0.5 rounded-full border ${
+          incidentType === 'trouble'
+            ? 'bg-red-50 text-red-600 border-red-200'
+            : 'bg-gray-100 text-gray-500 border-gray-200'
+        }`}>
+          {incidentType === 'trouble' ? 'トラブル' : 'その他'}
+        </span>
         <div className="flex gap-1">
           {STATUS_OPTIONS.filter((o) => o.value !== status).map((opt) => (
             <button

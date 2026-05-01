@@ -23,7 +23,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   if (notFound) return NextResponse.json({ error: '見つかりません' }, { status: 404 })
   if (!allowed) return NextResponse.json({ error: '編集権限がありません' }, { status: 403 })
 
-  const { title, general_contractor, site_name, site_contact, phone_number, content, tagInput, category, device } = await request.json()
+  const { title, general_contractor, site_name, site_contact, phone_number, content, tagInput, category, device, incident_type } = await request.json()
   if (!title?.trim() || !general_contractor?.trim() || !site_name?.trim() || !content?.trim())
     return NextResponse.json({ error: '必須項目を入力してください' }, { status: 400 })
 
@@ -36,6 +36,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     site_name: site_name.trim(), site_contact: site_contact ?? null,
     phone_number: phone_number ?? null, content: content.trim(), tags,
     category: category ?? null, device: device ?? null,
+    incident_type: incident_type ?? 'trouble',
   }).eq('id', params.id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 

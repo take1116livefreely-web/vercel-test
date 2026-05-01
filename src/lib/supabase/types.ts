@@ -24,6 +24,9 @@ export type Database = {
           status: 'open' | 'in_progress' | 'closed'
           closed_at: string | null
           closed_by: string | null
+          category: string | null
+          device: string | null
+          incident_type: 'trouble' | 'other'
         }
         Insert: {
           title: string
@@ -35,6 +38,9 @@ export type Database = {
           created_by: string
           tags?: string[]
           status?: 'open' | 'in_progress' | 'closed'
+          category?: string | null
+          device?: string | null
+          incident_type?: 'trouble' | 'other'
         }
         Update: {
           title?: string
@@ -47,6 +53,9 @@ export type Database = {
           status?: 'open' | 'in_progress' | 'closed'
           closed_at?: string | null
           closed_by?: string | null
+          category?: string | null
+          device?: string | null
+          incident_type?: 'trouble' | 'other'
         }
         Relationships: []
       }
@@ -65,9 +74,45 @@ export type Database = {
           responder_id: string
           tags?: string[]
         }
+        Update: { content?: string; tags?: string[] }
+        Relationships: []
+      }
+      categories: {
+        Row: { id: string; name: string; sort_order: number; created_at: string }
+        Insert: { name: string; sort_order?: number }
+        Update: { name?: string; sort_order?: number }
+        Relationships: []
+      }
+      systems: {
+        Row: { id: string; category_id: string; name: string; sort_order: number; created_at: string }
+        Insert: { category_id: string; name: string; sort_order?: number }
+        Update: { name?: string; sort_order?: number }
+        Relationships: []
+      }
+      incident_files: {
+        Row: {
+          id: string
+          incident_id: string | null
+          response_id: string | null
+          storage_path: string
+          name: string
+          mime_type: string
+          size: number
+          uploaded_by: string
+          created_at: string
+        }
+        Insert: {
+          incident_id?: string | null
+          response_id?: string | null
+          storage_path: string
+          name: string
+          mime_type: string
+          size: number
+          uploaded_by: string
+        }
         Update: {
-          content?: string
-          tags?: string[]
+          incident_id?: string | null
+          response_id?: string | null
         }
         Relationships: []
       }
@@ -83,29 +128,8 @@ export type Incident = Database['public']['Tables']['incidents']['Row']
 export type Response = Database['public']['Tables']['responses']['Row']
 export type AppUser = Database['public']['Tables']['users']['Row']
 
-export type Category = {
-  id: string
-  name: string
-  sort_order: number
-  created_at: string
-}
+export type Category = Database['public']['Tables']['categories']['Row']
+export type SystemItem = Database['public']['Tables']['systems']['Row']
+export type IncidentFile = Database['public']['Tables']['incident_files']['Row']
 
-export type SystemItem = {
-  id: string
-  category_id: string
-  name: string
-  sort_order: number
-  created_at: string
-}
-
-export type IncidentFile = {
-  id: string
-  incident_id: string | null
-  response_id: string | null
-  storage_path: string
-  name: string
-  mime_type: string
-  size: number
-  uploaded_by: string
-  created_at: string
-}
+export type CategoryWithSystems = Category & { systems: SystemItem[] }

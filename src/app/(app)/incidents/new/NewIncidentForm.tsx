@@ -18,6 +18,7 @@ export default function NewIncidentForm({ categories }: Props) {
   const [tagInput, setTagInput] = useState('')
   const [category, setCategory] = useState('')
   const [device, setDevice] = useState('')
+  const [incidentType, setIncidentType] = useState<'trouble' | 'other'>('trouble')
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -47,6 +48,7 @@ export default function NewIncidentForm({ categories }: Props) {
         created_by: user.id, tags,
         category: category || null,
         device: device || null,
+        incident_type: incidentType,
       })
       .select('id')
       .single()
@@ -77,6 +79,28 @@ export default function NewIncidentForm({ categories }: Props) {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">現場名 <span className="text-red-500">*</span></label>
             <input name="site_name" required className={selectCls} />
+          </div>
+        </div>
+
+        {/* 案件種別 */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">案件種別 <span className="text-red-500">*</span></label>
+          <div className="flex gap-4">
+            {(['trouble', 'other'] as const).map((t) => (
+              <label key={t} className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="incident_type"
+                  value={t}
+                  checked={incidentType === t}
+                  onChange={() => setIncidentType(t)}
+                  className="accent-blue-600"
+                />
+                <span className="text-sm text-gray-700">
+                  {t === 'trouble' ? 'トラブル' : 'その他'}
+                </span>
+              </label>
+            ))}
           </div>
         </div>
 

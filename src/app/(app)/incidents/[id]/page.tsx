@@ -63,6 +63,7 @@ export default async function IncidentPage({ params }: Props) {
           status: incident.status ?? 'open',
           category: incident.category ?? null,
           device: incident.device ?? null,
+          incident_type: incident.incident_type ?? 'trouble',
           created_at: incident.created_at,
           creator: incident.creator ?? null,
         }}
