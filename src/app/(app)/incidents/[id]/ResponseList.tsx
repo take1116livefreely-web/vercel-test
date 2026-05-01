@@ -11,7 +11,7 @@ import type { IncidentFile } from '@/lib/supabase/types'
 type ResponseWithFiles = {
   id: string
   content: string
-  responder_id: string
+  responder_id: string | null
   created_at: string
   tags: string[]
   responder: { name: string } | null
@@ -76,7 +76,7 @@ export default function ResponseList({ responses, currentUserId, isAdmin }: Prop
         return (
           <div key={res.id} className="bg-white rounded-xl border border-gray-200 p-4 ml-6">
             <div className="flex items-center justify-between mb-2">
-              <p className="text-sm font-medium text-blue-700">{res.responder?.name}</p>
+              <p className="text-sm font-medium text-blue-700">{res.responder?.name ?? '削除済みユーザー'}</p>
               <div className="flex items-center gap-2">
                 <p className="text-xs text-gray-400">
                   {new Date(res.created_at).toLocaleString('ja-JP')}

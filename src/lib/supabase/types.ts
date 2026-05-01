@@ -18,7 +18,7 @@ export type Database = {
           site_contact: string | null
           phone_number: string | null
           content: string
-          created_by: string
+          created_by: string | null
           created_at: string
           tags: string[]
           status: 'open' | 'in_progress' | 'closed'
@@ -64,7 +64,7 @@ export type Database = {
           id: string
           incident_id: string
           content: string
-          responder_id: string
+          responder_id: string | null
           created_at: string
           tags: string[]
         }

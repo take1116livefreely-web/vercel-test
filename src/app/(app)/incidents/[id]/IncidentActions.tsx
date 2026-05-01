@@ -263,7 +263,7 @@ export default function IncidentActions({ incident, canEdit, initialFiles, curre
         {incident.phone_number && (
           <p><span className="font-medium">電話番号：</span>{formatPhone(incident.phone_number)}</p>
         )}
-        <p><span className="font-medium">登録者：</span>{incident.creator?.name}</p>
+        <p><span className="font-medium">登録者：</span>{incident.creator?.name ?? '削除済みユーザー'}</p>
       </div>
       <div className="bg-gray-50 rounded-lg p-3 text-sm text-gray-800 whitespace-pre-wrap mb-3">
         {incident.content}
