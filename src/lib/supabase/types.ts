@@ -98,7 +98,7 @@ export type Database = {
           name: string
           mime_type: string
           size: number
-          uploaded_by: string
+          uploaded_by: string | null
           created_at: string
         }
         Insert: {

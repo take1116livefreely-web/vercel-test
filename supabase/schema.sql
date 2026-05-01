@@ -93,19 +93,30 @@ alter table public.incidents
   add column if not exists category text,
   add column if not exists device text;
 
--- incidents.created_by / responses.responder_id を ON DELETE SET NULL に変更
--- （ユーザー削除時に案件・対応履歴を残す）
+-- users 参照の FK を全て ON DELETE SET NULL に変更
+-- （ユーザー削除時に案件・対応履歴・ファイルを残す）
 alter table public.incidents
   drop constraint incidents_created_by_fkey,
   alter column created_by drop not null,
   add constraint incidents_created_by_fkey
     foreign key (created_by) references public.users(id) on delete set null;
 
+alter table public.incidents
+  drop constraint incidents_closed_by_fkey,
+  add constraint incidents_closed_by_fkey
+    foreign key (closed_by) references public.users(id) on delete set null;
+
 alter table public.responses
   drop constraint responses_responder_id_fkey,
   alter column responder_id drop not null,
   add constraint responses_responder_id_fkey
     foreign key (responder_id) references public.users(id) on delete set null;
+
+alter table public.incident_files
+  drop constraint incident_files_uploaded_by_fkey,
+  alter column uploaded_by drop not null,
+  add constraint incident_files_uploaded_by_fkey
+    foreign key (uploaded_by) references public.users(id) on delete set null;
 
 -- developer ロールを追加
 alter table public.users
