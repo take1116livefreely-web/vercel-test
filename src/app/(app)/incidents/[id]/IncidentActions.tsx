@@ -5,10 +5,12 @@ import { useRouter } from 'next/navigation'
 import TagBadge from '@/components/TagBadge'
 import StatusBadge from '@/components/StatusBadge'
 import TagInput from '@/components/TagInput'
+import CategoryDeviceSelect from '@/components/CategoryDeviceSelect'
 import FileList from '@/components/FileList'
 import FileUpload from '@/components/FileUpload'
 import { formatPhone } from '@/lib/phone'
 import type { IncidentFile } from '@/lib/supabase/types'
+import type { CategoryWithSystems } from '@/lib/categories'
 
 type Status = 'open' | 'in_progress' | 'closed'
 
@@ -22,6 +24,8 @@ type Incident = {
   content: string
   tags: string[]
   status: Status
+  category: string | null
+  device: string | null
   created_at: string
   creator: { name: string } | null
 }
@@ -32,6 +36,7 @@ type Props = {
   initialFiles: IncidentFile[]
   currentUserId: string
   isAdmin: boolean
+  categories: CategoryWithSystems[]
 }
 
 const STATUS_OPTIONS: { value: Status; label: string }[] = [
@@ -40,7 +45,9 @@ const STATUS_OPTIONS: { value: Status; label: string }[] = [
   { value: 'closed', label: '解決済み' },
 ]
 
-export default function IncidentActions({ incident, canEdit, initialFiles, currentUserId, isAdmin }: Props) {
+const selectCls = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
+
+export default function IncidentActions({ incident, canEdit, initialFiles, currentUserId, isAdmin, categories }: Props) {
   const [editing, setEditing] = useState(false)
   const [title, setTitle] = useState(incident.title)
   const [contractor, setContractor] = useState(incident.general_contractor)
@@ -54,6 +61,8 @@ export default function IncidentActions({ incident, canEdit, initialFiles, curre
   )
   const [siteContact, setSiteContact] = useState(incident.site_contact ?? '')
   const [phoneNumber, setPhoneNumber] = useState(incident.phone_number ?? '')
+  const [category, setCategory] = useState(incident.category ?? '')
+  const [device, setDevice] = useState(incident.device ?? '')
   const [status, setStatus] = useState<Status>(incident.status)
   const [statusChanging, setStatusChanging] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -66,7 +75,13 @@ export default function IncidentActions({ incident, canEdit, initialFiles, curre
     const res = await fetch(`/api/incidents/${incident.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, general_contractor: contractor, site_name: site, site_contact: siteContact || null, phone_number: phoneNumber || null, content, tagInput }),
+      body: JSON.stringify({
+        title, general_contractor: contractor, site_name: site,
+        site_contact: siteContact || null, phone_number: phoneNumber || null,
+        content, tagInput,
+        category: category || null,
+        device: device || null,
+      }),
     })
     setSaving(false)
     if (res.ok) {
@@ -113,18 +128,29 @@ export default function IncidentActions({ incident, canEdit, initialFiles, curre
       <div className="bg-white rounded-xl border border-gray-200 p-6 mb-4 space-y-3">
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">タイトル</label>
-          <input value={title} onChange={(e) => setTitle(e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          <input value={title} onChange={(e) => setTitle(e.target.value)} className={selectCls} />
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">ゼネコン</label>
-            <input value={contractor} onChange={(e) => setContractor(e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <input value={contractor} onChange={(e) => setContractor(e.target.value)} className={selectCls} />
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">現場</label>
-            <input value={site} onChange={(e) => setSite(e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <input value={site} onChange={(e) => setSite(e.target.value)} className={selectCls} />
           </div>
         </div>
+
+        <CategoryDeviceSelect
+          categories={categories}
+          category={category}
+          device={device}
+          onCategoryChange={setCategory}
+          onDeviceChange={setDevice}
+          className={selectCls}
+          labelClassName="block text-xs font-medium text-gray-600 mb-1"
+        />
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">現場担当者</label>
@@ -135,21 +161,16 @@ export default function IncidentActions({ incident, canEdit, initialFiles, curre
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">電話番号（ハイフンなし）</label>
-            <input value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} type="tel" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <input value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} type="tel" className={selectCls} />
           </div>
         </div>
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">内容</label>
-          <textarea value={content} onChange={(e) => setContent(e.target.value)} rows={4} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
+          <textarea value={content} onChange={(e) => setContent(e.target.value)} rows={4} className={`${selectCls} resize-none`} />
         </div>
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">追加タグ</label>
-          <TagInput
-            value={tagInput}
-            onChange={setTagInput}
-            placeholder="#タグ1 #タグ2"
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
+          <TagInput value={tagInput} onChange={setTagInput} placeholder="#タグ1 #タグ2" className={selectCls} />
         </div>
         <div className="flex gap-2">
           <button onClick={handleSave} disabled={saving} className="text-sm bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg">
@@ -180,7 +201,6 @@ export default function IncidentActions({ incident, canEdit, initialFiles, curre
         </div>
       </div>
 
-      {/* ステータス */}
       <div className="flex items-center gap-2 mb-3">
         <StatusBadge status={status} />
         <div className="flex gap-1">
@@ -200,6 +220,12 @@ export default function IncidentActions({ incident, canEdit, initialFiles, curre
       <div className="text-sm text-gray-600 mb-3 space-y-1">
         <p><span className="font-medium">ゼネコン：</span>{incident.general_contractor}</p>
         <p><span className="font-medium">現場：</span>{incident.site_name}</p>
+        {incident.category && (
+          <p><span className="font-medium">ジャンル：</span>{incident.category}</p>
+        )}
+        {incident.device && (
+          <p><span className="font-medium">システム名：</span>{incident.device}</p>
+        )}
         {incident.site_contact && (
           <p><span className="font-medium">現場担当者：</span>{incident.site_contact} 様</p>
         )}

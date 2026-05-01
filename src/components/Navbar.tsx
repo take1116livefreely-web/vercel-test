@@ -23,9 +23,14 @@ export default function Navbar({ user }: { user: AppUser }) {
           連絡先
         </Link>
         {user.role === 'admin' && (
-          <Link href="/admin/users" className="text-sm text-gray-600 hover:text-blue-600">
-            ユーザー管理
-          </Link>
+          <>
+            <Link href="/admin/categories" className="text-sm text-gray-600 hover:text-blue-600">
+              カテゴリ管理
+            </Link>
+            <Link href="/admin/users" className="text-sm text-gray-600 hover:text-blue-600">
+              ユーザー管理
+            </Link>
+          </>
         )}
         <span className="text-sm text-gray-500">{user.name}</span>
         <button

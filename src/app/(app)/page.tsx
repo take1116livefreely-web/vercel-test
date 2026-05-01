@@ -153,6 +153,11 @@ export default async function HomePage({ searchParams }: Props) {
                 <p className="text-sm text-gray-500">
                   {inc.general_contractor}　／　{inc.site_name}
                 </p>
+                {(inc.category || inc.device) && (
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    {[inc.category, inc.device].filter(Boolean).join('　›　')}
+                  </p>
+                )}
               </div>
               <p className="text-xs text-gray-400 whitespace-nowrap">
                 {new Date(inc.created_at).toLocaleDateString('ja-JP')}

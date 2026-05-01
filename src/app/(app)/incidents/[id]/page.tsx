@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { fetchCategoriesWithSystems } from '@/lib/fetchCategories'
 import ResponseForm from './ResponseForm'
 import ResponseList from './ResponseList'
 import IncidentActions from './IncidentActions'
@@ -15,11 +16,13 @@ export default async function IncidentPage({ params }: Props) {
     { data: responses },
     { data: { user } },
     { data: incidentFiles },
+    categories,
   ] = await Promise.all([
     supabase.from('incidents').select('*, creator:users!created_by(name)').eq('id', params.id).single(),
     supabase.from('responses').select('*, responder:users!responder_id(name)').eq('incident_id', params.id).order('created_at', { ascending: true }),
     supabase.auth.getUser(),
     supabase.from('incident_files').select('*').eq('incident_id', params.id).is('response_id', null).order('created_at', { ascending: true }),
+    fetchCategoriesWithSystems(),
   ])
 
   const incident = incidentRaw as any
@@ -29,7 +32,6 @@ export default async function IncidentPage({ params }: Props) {
   const isAdmin = (appUser as { role: string } | null)?.role === 'admin'
   const canEdit = isAdmin || incident.created_by === user!.id
 
-  // 対応履歴ごとのファイルを取得
   const responseIds = (responses ?? []).map((r: any) => r.id)
   const { data: responseFiles } = responseIds.length > 0
     ? await supabase.from('incident_files').select('*').in('response_id', responseIds).order('created_at', { ascending: true })
@@ -59,6 +61,8 @@ export default async function IncidentPage({ params }: Props) {
           content: incident.content,
           tags: incident.tags,
           status: incident.status ?? 'open',
+          category: incident.category ?? null,
+          device: incident.device ?? null,
           created_at: incident.created_at,
           creator: incident.creator ?? null,
         }}
@@ -66,6 +70,7 @@ export default async function IncidentPage({ params }: Props) {
         initialFiles={(incidentFiles ?? []) as IncidentFile[]}
         currentUserId={user!.id}
         isAdmin={isAdmin}
+        categories={categories}
       />
 
       <ResponseList

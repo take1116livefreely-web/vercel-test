@@ -83,6 +83,21 @@ export type Incident = Database['public']['Tables']['incidents']['Row']
 export type Response = Database['public']['Tables']['responses']['Row']
 export type AppUser = Database['public']['Tables']['users']['Row']
 
+export type Category = {
+  id: string
+  name: string
+  sort_order: number
+  created_at: string
+}
+
+export type SystemItem = {
+  id: string
+  category_id: string
+  name: string
+  sort_order: number
+  created_at: string
+}
+
 export type IncidentFile = {
   id: string
   incident_id: string | null
