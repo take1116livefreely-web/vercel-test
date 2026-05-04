@@ -27,6 +27,7 @@ export type Database = {
           category: string | null
           device: string | null
           incident_type: 'trouble' | 'other'
+          resolution: string | null
         }
         Insert: {
           title: string
@@ -56,6 +57,7 @@ export type Database = {
           category?: string | null
           device?: string | null
           incident_type?: 'trouble' | 'other'
+          resolution?: string | null
         }
         Relationships: []
       }

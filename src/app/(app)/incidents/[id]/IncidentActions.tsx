@@ -26,6 +26,7 @@ type Incident = {
   incident_type: IncidentType
   category: string | null
   device: string | null
+  resolution: string | null
   created_at: string
   creator: { name: string } | null
 }
@@ -59,6 +60,9 @@ export default function IncidentActions({ incident, canEdit, initialFiles, curre
   const [category, setCategory] = useState(incident.category ?? '')
   const [device, setDevice] = useState(incident.device ?? '')
   const [status, setStatus] = useState<Status>(incident.status)
+  const [resolution, setResolution] = useState<string | null>(incident.resolution)
+  const [showResolutionModal, setShowResolutionModal] = useState(false)
+  const [resolutionInput, setResolutionInput] = useState('')
   const [statusChanging, setStatusChanging] = useState(false)
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -102,16 +106,19 @@ export default function IncidentActions({ incident, canEdit, initialFiles, curre
     }
   }
 
-  async function handleStatusChange(newStatus: Status) {
+  async function handleStatusChange(newStatus: Status, resolutionText?: string) {
     setStatusChanging(true)
+    const body: Record<string, string | null> = { status: newStatus }
+    if (newStatus === 'closed') body.resolution = resolutionText || null
     const res = await fetch(`/api/incidents/${incident.id}/status`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: newStatus }),
+      body: JSON.stringify(body),
     })
     setStatusChanging(false)
     if (res.ok) {
       setStatus(newStatus)
+      if (newStatus === 'closed') setResolution(resolutionText || null)
       router.refresh()
     } else {
       const json = await res.json()
@@ -225,7 +232,14 @@ export default function IncidentActions({ incident, canEdit, initialFiles, curre
           {STATUS_OPTIONS.filter((o) => o.value !== status).map((opt) => (
             <button
               key={opt.value}
-              onClick={() => handleStatusChange(opt.value)}
+              onClick={() => {
+                if (opt.value === 'closed') {
+                  setResolutionInput('')
+                  setShowResolutionModal(true)
+                } else {
+                  handleStatusChange(opt.value)
+                }
+              }}
               disabled={statusChanging}
               className="text-xs text-gray-500 hover:text-blue-600 px-2 py-0.5 rounded border border-gray-200 hover:border-blue-300 disabled:opacity-50"
             >
@@ -255,6 +269,12 @@ export default function IncidentActions({ incident, canEdit, initialFiles, curre
       <div className="bg-gray-50 rounded-lg p-3 text-sm text-gray-800 whitespace-pre-wrap mb-3">
         {incident.content}
       </div>
+      {status === 'closed' && resolution && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-sm text-gray-800 whitespace-pre-wrap mb-3">
+          <p className="text-xs font-medium text-green-700 mb-1">解決内容</p>
+          {resolution}
+        </div>
+      )}
       <div className="border-t border-gray-100 pt-3">
         <FileList
           files={files}
@@ -268,6 +288,41 @@ export default function IncidentActions({ incident, canEdit, initialFiles, curre
           onUploaded={(f) => setFiles((prev) => [...prev, f])}
         />
       </div>
+
+      {showResolutionModal && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 space-y-4">
+            <h2 className="text-base font-semibold text-gray-800">解決内容を記録する</h2>
+            <textarea
+              value={resolutionInput}
+              onChange={(e) => setResolutionInput(e.target.value)}
+              rows={4}
+              placeholder="例: LANケーブルを交換して復旧"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              autoFocus
+            />
+            <p className="text-xs text-gray-400">任意。後から対応履歴に書いても構いません。</p>
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => setShowResolutionModal(false)}
+                className="text-sm text-gray-500 hover:text-gray-700 px-4 py-2 rounded-lg border"
+              >
+                キャンセル
+              </button>
+              <button
+                onClick={async () => {
+                  setShowResolutionModal(false)
+                  await handleStatusChange('closed', resolutionInput)
+                }}
+                disabled={statusChanging}
+                className="text-sm bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg"
+              >
+                解決済みにする
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

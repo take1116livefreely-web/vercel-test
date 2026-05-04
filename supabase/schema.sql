@@ -220,3 +220,6 @@ $$;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
+
+-- resolution カラム追加（解決済み時の解決内容）
+alter table public.incidents add column if not exists resolution text;

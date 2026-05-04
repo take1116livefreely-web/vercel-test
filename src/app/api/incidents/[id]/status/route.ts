@@ -7,15 +7,22 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { status } = await request.json()
+  const { status, resolution } = await request.json()
   if (!['open', 'in_progress', 'closed'].includes(status))
     return NextResponse.json({ error: '不正なステータスです' }, { status: 400 })
 
   const admin = createAdminClient()
-  const update: Record<string, unknown> = { status }
+  type IncidentUpdate = {
+    status: 'open' | 'in_progress' | 'closed'
+    closed_at?: string | null
+    closed_by?: string | null
+    resolution?: string | null
+  }
+  const update: IncidentUpdate = { status }
   if (status === 'closed') {
     update.closed_at = new Date().toISOString()
     update.closed_by = user.id
+    update.resolution = resolution || null
   } else {
     update.closed_at = null
     update.closed_by = null
