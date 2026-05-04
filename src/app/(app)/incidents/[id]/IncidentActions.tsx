@@ -301,7 +301,7 @@ export default function IncidentActions({ incident, canEdit, initialFiles, curre
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
               autoFocus
             />
-            <p className="text-xs text-gray-400">任意。後から対応履歴に書いても構いません。</p>
+            <p className="text-xs text-gray-500">原因と結果を簡潔に記載してください。<span className="text-gray-400">（AI学習精度に影響します）</span></p>
             <div className="flex gap-2 justify-end">
               <button
                 onClick={() => setShowResolutionModal(false)}
@@ -314,7 +314,7 @@ export default function IncidentActions({ incident, canEdit, initialFiles, curre
                   setShowResolutionModal(false)
                   await handleStatusChange('closed', resolutionInput)
                 }}
-                disabled={statusChanging}
+                disabled={statusChanging || !resolutionInput.trim()}
                 className="text-sm bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg"
               >
                 解決済みにする
