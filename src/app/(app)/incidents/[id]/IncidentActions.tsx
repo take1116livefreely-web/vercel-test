@@ -163,15 +163,17 @@ export default function IncidentActions({ incident, canEdit, initialFiles, curre
           </div>
         </div>
 
-        <CategoryDeviceSelect
-          categories={categories}
-          category={category}
-          device={device}
-          onCategoryChange={setCategory}
-          onDeviceChange={setDevice}
-          className={selectCls}
-          labelClassName="block text-xs font-medium text-gray-600 mb-1"
-        />
+        {incidentType === 'trouble' && (
+          <CategoryDeviceSelect
+            categories={categories}
+            category={category}
+            device={device}
+            onCategoryChange={setCategory}
+            onDeviceChange={setDevice}
+            className={selectCls}
+            labelClassName="block text-xs font-medium text-gray-600 mb-1"
+          />
+        )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
@@ -233,7 +235,7 @@ export default function IncidentActions({ incident, canEdit, initialFiles, curre
             <button
               key={opt.value}
               onClick={() => {
-                if (opt.value === 'closed') {
+                if (opt.value === 'closed' && incidentType === 'trouble') {
                   setResolutionInput('')
                   setShowResolutionModal(true)
                 } else {

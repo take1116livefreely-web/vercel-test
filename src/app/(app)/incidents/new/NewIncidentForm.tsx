@@ -139,15 +139,17 @@ export default function NewIncidentForm({ categories }: Props) {
           </div>
         </div>
 
-        <CategoryDeviceSelect
-          categories={categories}
-          category={category}
-          device={device}
-          onCategoryChange={setCategory}
-          onDeviceChange={setDevice}
-          required
-          className={selectCls}
-        />
+        {incidentType === 'trouble' && (
+          <CategoryDeviceSelect
+            categories={categories}
+            category={category}
+            device={device}
+            onCategoryChange={setCategory}
+            onDeviceChange={setDevice}
+            required
+            className={selectCls}
+          />
+        )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
