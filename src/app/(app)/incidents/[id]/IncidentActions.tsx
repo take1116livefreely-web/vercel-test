@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import TagBadge from '@/components/TagBadge'
 import StatusBadge from '@/components/StatusBadge'
 import CategoryDeviceSelect from '@/components/CategoryDeviceSelect'
 import FileList from '@/components/FileList'
@@ -23,7 +22,6 @@ type Incident = {
   site_contact: string | null
   phone_number: string | null
   content: string
-  tags: string[]
   status: Status
   incident_type: IncidentType
   category: string | null
@@ -257,11 +255,6 @@ export default function IncidentActions({ incident, canEdit, initialFiles, curre
       <div className="bg-gray-50 rounded-lg p-3 text-sm text-gray-800 whitespace-pre-wrap mb-3">
         {incident.content}
       </div>
-      {incident.tags.length > 0 && (
-        <div className="flex flex-wrap gap-1 mb-3">
-          {incident.tags.map((tag) => <TagBadge key={tag} tag={tag} />)}
-        </div>
-      )}
       <div className="border-t border-gray-100 pt-3">
         <FileList
           files={files}

@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { buildTagsFromIncident } from '@/lib/tags'
 import CategoryDeviceSelect from '@/components/CategoryDeviceSelect'
 import type { CategoryWithSystems } from '@/lib/categories'
 
@@ -66,14 +65,12 @@ export default function NewIncidentForm({ categories }: Props) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/login'); return }
 
-    const tags = buildTagsFromIncident(generalContractor, siteName)
-
     const { data: incident, error: err } = await (supabase
       .from('incidents')
       .insert({
         title, general_contractor: generalContractor, site_name: siteName,
         site_contact: siteContact || null, phone_number: phoneNumber || null, content,
-        created_by: user.id, tags,
+        created_by: user.id,
         category: category || null,
         device: device || null,
         incident_type: incidentType,

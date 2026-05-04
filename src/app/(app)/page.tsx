@@ -1,6 +1,5 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import TagBadge from '@/components/TagBadge'
 import StatusBadge from '@/components/StatusBadge'
 import SimpleNav from '@/components/SimpleNav'
 import Pagination from '@/components/Pagination'
@@ -211,11 +210,6 @@ export default async function HomePage({ searchParams }: Props) {
                 {new Date(inc.created_at).toLocaleDateString('ja-JP')}
               </p>
             </div>
-            {inc.tags.length > 0 && (
-              <div className="flex flex-wrap gap-1 mt-2">
-                {inc.tags.map((tag: string) => <TagBadge key={tag} tag={tag} />)}
-              </div>
-            )}
           </Link>
         ))}
       </div>

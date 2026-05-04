@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { parseTags } from '@/lib/tags'
 
 async function getPermission(responseId: string, userId: string) {
   const supabase = createClient()
@@ -23,11 +22,11 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   if (notFound) return NextResponse.json({ error: '見つかりません' }, { status: 404 })
   if (!allowed) return NextResponse.json({ error: '編集権限がありません' }, { status: 403 })
 
-  const { content, tagInput } = await request.json()
+  const { content } = await request.json()
   if (!content?.trim()) return NextResponse.json({ error: '内容は必須です' }, { status: 400 })
 
   const admin = createAdminClient()
-  const { error } = await admin.from('responses').update({ content: content.trim(), tags: parseTags(tagInput ?? '') }).eq('id', params.id)
+  const { error } = await admin.from('responses').update({ content: content.trim() }).eq('id', params.id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   return NextResponse.json({ ok: true })

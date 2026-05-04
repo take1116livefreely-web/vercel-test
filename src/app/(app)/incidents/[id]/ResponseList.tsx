@@ -2,8 +2,6 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import TagBadge from '@/components/TagBadge'
-import TagInput from '@/components/TagInput'
 import FileList from '@/components/FileList'
 import FileUpload from '@/components/FileUpload'
 import type { IncidentFile } from '@/lib/supabase/types'
@@ -13,7 +11,6 @@ type ResponseWithFiles = {
   content: string
   responder_id: string | null
   created_at: string
-  tags: string[]
   responder: { name: string } | null
   files: IncidentFile[]
 }
@@ -28,7 +25,6 @@ export default function ResponseList({ responses, currentUserId, isAdmin }: Prop
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editContent, setEditContent] = useState('')
-  const [editTagInput, setEditTagInput] = useState('')
   const [filesMap, setFilesMap] = useState<Record<string, IncidentFile[]>>(
     Object.fromEntries(responses.map((r) => [r.id, r.files]))
   )
@@ -37,14 +33,13 @@ export default function ResponseList({ responses, currentUserId, isAdmin }: Prop
   function startEdit(res: ResponseWithFiles) {
     setEditingId(res.id)
     setEditContent(res.content)
-    setEditTagInput(res.tags.join(' '))
   }
 
   async function handleEdit(id: string) {
     const res = await fetch(`/api/responses/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content: editContent, tagInput: editTagInput }),
+      body: JSON.stringify({ content: editContent }),
     })
     if (res.ok) {
       setEditingId(null)
@@ -99,12 +94,6 @@ export default function ResponseList({ responses, currentUserId, isAdmin }: Prop
                   rows={4}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                 />
-                <TagInput
-                  value={editTagInput}
-                  onChange={setEditTagInput}
-                  placeholder="#タグ1 #タグ2"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
                 <div className="flex gap-2">
                   <button onClick={() => handleEdit(res.id)} className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded">保存</button>
                   <button onClick={() => setEditingId(null)} className="text-xs text-gray-500 hover:text-gray-700 px-3 py-1 rounded border">キャンセル</button>
@@ -113,11 +102,6 @@ export default function ResponseList({ responses, currentUserId, isAdmin }: Prop
             ) : (
               <>
                 <p className="text-sm text-gray-800 whitespace-pre-wrap">{res.content}</p>
-                {res.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mt-2">
-                    {res.tags.map((tag) => <TagBadge key={tag} tag={tag} />)}
-                  </div>
-                )}
               </>
             )}
             <div className="border-t border-gray-100 mt-3 pt-2">
