@@ -37,7 +37,7 @@ export default function ResponseList({ responses, currentUserId, isAdmin }: Prop
   function startEdit(res: ResponseWithFiles) {
     setEditingId(res.id)
     setEditContent(res.content)
-    setEditTagInput(res.tags.map((t) => `#${t}`).join(' '))
+    setEditTagInput(res.tags.join(' '))
   }
 
   async function handleEdit(id: string) {

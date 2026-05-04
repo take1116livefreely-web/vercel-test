@@ -28,10 +28,10 @@ export default function TagInput({ value, onChange, placeholder, className, name
     const val = e.target.value
     onChange(val)
 
-    const token = getLastToken(val)
-    if (token.startsWith('#') && token.length >= 2) {
-      const search = token.slice(1).toLowerCase()
-      const used = val.split(/[\s　]/).filter((t) => t.startsWith('#')).map((t) => t.slice(1).toLowerCase())
+    const token = getLastToken(val).replace(/^#/, '')
+    if (token.length >= 1) {
+      const search = token.toLowerCase()
+      const used = val.split(/[\s　]/).filter(Boolean).map((t) => t.replace(/^#/, '').toLowerCase())
       const matches = allTags
         .filter((t) => t.toLowerCase().startsWith(search) && !used.includes(t.toLowerCase()))
         .slice(0, 8)
@@ -44,7 +44,7 @@ export default function TagInput({ value, onChange, placeholder, className, name
 
   function applySuggestion(tag: string) {
     const tokens = value.split(/[\s　]/)
-    tokens[tokens.length - 1] = `#${tag}`
+    tokens[tokens.length - 1] = tag
     onChange(tokens.join(' ') + ' ')
     setShowDropdown(false)
     inputRef.current?.focus()
@@ -71,7 +71,7 @@ export default function TagInput({ value, onChange, placeholder, className, name
               onMouseDown={() => applySuggestion(tag)}
               className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-blue-50"
             >
-              #{tag}
+              {tag}
             </button>
           ))}
         </div>

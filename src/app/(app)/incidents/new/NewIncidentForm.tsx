@@ -196,7 +196,7 @@ export default function NewIncidentForm({ categories }: Props) {
           <TagInput
             value={tagInput}
             onChange={setTagInput}
-            placeholder="#モバイル　#通信不良　など"
+            placeholder="モバイル　通信不良　など"
             className={selectCls}
           />
           <p className="text-xs text-gray-400 mt-1">ゼネコン名・現場名は自動でタグに追加されます</p>

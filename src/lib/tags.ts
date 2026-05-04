@@ -1,6 +1,7 @@
 export function parseTags(input: string): string[] {
-  const matches = input.match(/#([^\s#]+)/g) ?? []
-  return [...new Set(matches.map((t) => t.slice(1)))]
+  const tokens = input.trim().split(/[\s　]+/).filter(Boolean)
+  // 先頭に # が付いていても付いていなくても同様に処理
+  return [...new Set(tokens.map((t) => t.replace(/^#/, '')))]
 }
 
 export function buildTagsFromIncident(
