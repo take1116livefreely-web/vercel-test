@@ -112,7 +112,7 @@ export default function ResponseForm({ incidentId, userId }: Props) {
         </div>
         <div className="flex items-center gap-2">
           <label className="text-xs text-gray-500 whitespace-nowrap">
-            結果 <span className="text-red-500">*</span>
+            結果 <span className="text-red-500">*</span> <span className="text-gray-400">（AI学習精度に影響します）</span>
           </label>
           <select value={resultType} onChange={(e) => setResultType(e.target.value)} className={selectCls}>
             <option value="" disabled>結果を選択 *</option>
