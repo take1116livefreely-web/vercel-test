@@ -7,9 +7,8 @@ export function parseTags(input: string): string[] {
 export function buildTagsFromIncident(
   generalContractor: string,
   siteName: string,
-  extraTags: string[]
 ): string[] {
-  return [...new Set([generalContractor, siteName, ...extraTags].filter(Boolean))]
+  return [...new Set([generalContractor, siteName].filter(Boolean))]
 }
 
 export function formatTag(tag: string) {

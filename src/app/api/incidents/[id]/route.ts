@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { parseTags, buildTagsFromIncident } from '@/lib/tags'
+import { buildTagsFromIncident } from '@/lib/tags'
 
 async function getPermission(incidentId: string, userId: string) {
   const supabase = createClient()
@@ -23,12 +23,11 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   if (notFound) return NextResponse.json({ error: '見つかりません' }, { status: 404 })
   if (!allowed) return NextResponse.json({ error: '編集権限がありません' }, { status: 403 })
 
-  const { title, general_contractor, site_name, site_contact, phone_number, content, tagInput, category, device, incident_type } = await request.json()
+  const { title, general_contractor, site_name, site_contact, phone_number, content, category, device, incident_type } = await request.json()
   if (!title?.trim() || !general_contractor?.trim() || !site_name?.trim() || !content?.trim())
     return NextResponse.json({ error: '必須項目を入力してください' }, { status: 400 })
 
-  const extraTags = parseTags(tagInput ?? '')
-  const tags = buildTagsFromIncident(general_contractor.trim(), site_name.trim(), extraTags)
+  const tags = buildTagsFromIncident(general_contractor.trim(), site_name.trim())
 
   const admin = createAdminClient()
   const { error } = await admin.from('incidents').update({

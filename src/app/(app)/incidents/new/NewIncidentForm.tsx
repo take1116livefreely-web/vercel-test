@@ -3,8 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { parseTags, buildTagsFromIncident } from '@/lib/tags'
-import TagInput from '@/components/TagInput'
+import { buildTagsFromIncident } from '@/lib/tags'
 import CategoryDeviceSelect from '@/components/CategoryDeviceSelect'
 import type { CategoryWithSystems } from '@/lib/categories'
 
@@ -15,7 +14,6 @@ export default function NewIncidentForm({ categories }: Props) {
   const supabase = createClient()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [tagInput, setTagInput] = useState('')
   const [category, setCategory] = useState('')
   const [device, setDevice] = useState('')
   const [incidentType, setIncidentType] = useState<'trouble' | 'other'>('trouble')
@@ -68,8 +66,7 @@ export default function NewIncidentForm({ categories }: Props) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/login'); return }
 
-    const extraTags = parseTags(tagInput)
-    const tags = buildTagsFromIncident(generalContractor, siteName, extraTags)
+    const tags = buildTagsFromIncident(generalContractor, siteName)
 
     const { data: incident, error: err } = await (supabase
       .from('incidents')
@@ -191,18 +188,7 @@ export default function NewIncidentForm({ categories }: Props) {
           <label className="block text-sm font-medium text-gray-700 mb-1">内容 <span className="text-red-500">*</span></label>
           <textarea name="content" required rows={5} className={`${selectCls} resize-none`} />
         </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">追加タグ（任意）</label>
-          <TagInput
-            value={tagInput}
-            onChange={setTagInput}
-            placeholder="モバイル　通信不良　など"
-            className={selectCls}
-          />
-          <p className="text-xs text-gray-400 mt-1">ゼネコン名・現場名は自動でタグに追加されます</p>
-        </div>
-
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error &&<p className="text-sm text-red-600">{error}</p>}
         <div className="flex gap-3 justify-end">
           <button type="button" onClick={() => router.back()} className="text-sm text-gray-600 hover:text-gray-800 px-4 py-2 rounded-lg border border-gray-300">
             キャンセル

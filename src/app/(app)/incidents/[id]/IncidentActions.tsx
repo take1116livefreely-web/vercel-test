@@ -4,7 +4,6 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import TagBadge from '@/components/TagBadge'
 import StatusBadge from '@/components/StatusBadge'
-import TagInput from '@/components/TagInput'
 import CategoryDeviceSelect from '@/components/CategoryDeviceSelect'
 import FileList from '@/components/FileList'
 import FileUpload from '@/components/FileUpload'
@@ -56,11 +55,6 @@ export default function IncidentActions({ incident, canEdit, initialFiles, curre
   const [contractor, setContractor] = useState(incident.general_contractor)
   const [site, setSite] = useState(incident.site_name)
   const [content, setContent] = useState(incident.content)
-  const [tagInput, setTagInput] = useState(
-    incident.tags
-      .filter((t) => t !== incident.general_contractor && t !== incident.site_name)
-      .join(' ')
-  )
   const [siteContact, setSiteContact] = useState(incident.site_contact ?? '')
   const [phoneNumber, setPhoneNumber] = useState(incident.phone_number ?? '')
   const [incidentType, setIncidentType] = useState<IncidentType>(incident.incident_type)
@@ -81,7 +75,7 @@ export default function IncidentActions({ incident, canEdit, initialFiles, curre
       body: JSON.stringify({
         title, general_contractor: contractor, site_name: site,
         site_contact: siteContact || null, phone_number: phoneNumber || null,
-        content, tagInput,
+        content,
         category: category || null,
         device: device || null,
         incident_type: incidentType,
@@ -190,10 +184,6 @@ export default function IncidentActions({ incident, canEdit, initialFiles, curre
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">内容</label>
           <textarea value={content} onChange={(e) => setContent(e.target.value)} rows={4} className={`${selectCls} resize-none`} />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">追加タグ</label>
-          <TagInput value={tagInput} onChange={setTagInput} placeholder="タグ1 タグ2" className={selectCls} />
         </div>
         <div className="flex gap-2">
           <button onClick={handleSave} disabled={saving} className="text-sm bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg">
