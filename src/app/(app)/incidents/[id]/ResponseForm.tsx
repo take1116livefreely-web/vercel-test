@@ -3,14 +3,18 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { parseTags } from '@/lib/tags'
-import TagInput from '@/components/TagInput'
+
+const ACTION_TYPES = ['確認作業', '再起動・リセット', '部品交換', '設定変更', '業者手配', 'その他'] as const
+const RESULT_TYPES = ['効果なし', '部分改善', '解決'] as const
 
 type Props = { incidentId: string; userId: string }
 
+const selectCls = 'border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
+
 export default function ResponseForm({ incidentId, userId }: Props) {
   const [content, setContent] = useState('')
-  const [tagInput, setTagInput] = useState('')
+  const [actionType, setActionType] = useState<string>('その他')
+  const [resultType, setResultType] = useState<string>('効果なし')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
@@ -22,16 +26,22 @@ export default function ResponseForm({ incidentId, userId }: Props) {
     setError('')
     setLoading(true)
 
-    const tags = parseTags(tagInput)
     const { error: err } = await supabase
       .from('responses')
-      .insert({ incident_id: incidentId, content: content.trim(), responder_id: userId, tags })
+      .insert({
+        incident_id: incidentId,
+        content: content.trim(),
+        responder_id: userId,
+        action_type: actionType,
+        result_type: resultType,
+      })
 
     if (err) {
       setError('送信に失敗しました。')
     } else {
       setContent('')
-      setTagInput('')
+      setActionType('その他')
+      setResultType('効果なし')
       router.refresh()
     }
     setLoading(false)
@@ -47,12 +57,22 @@ export default function ResponseForm({ incidentId, userId }: Props) {
         rows={3}
         className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none mb-2"
       />
-      <TagInput
-        value={tagInput}
-        onChange={setTagInput}
-        placeholder="#モバイル　#対応済み　など（任意）"
-        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 mb-2"
-      />
+      <div className="flex flex-wrap gap-3 mb-2">
+        <div className="flex items-center gap-2">
+          <label className="text-xs text-gray-500 whitespace-nowrap">対応種別</label>
+          <select value={actionType} onChange={(e) => setActionType(e.target.value)} className={selectCls}>
+            {ACTION_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+          </select>
+        </div>
+        <div className="flex items-center gap-2">
+          <label className="text-xs text-gray-500 whitespace-nowrap">
+            結果 <span className="text-red-500">*</span>
+          </label>
+          <select value={resultType} onChange={(e) => setResultType(e.target.value)} className={selectCls}>
+            {RESULT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+          </select>
+        </div>
+      </div>
       {error && <p className="text-sm text-red-600 mb-2">{error}</p>}
       <div className="flex justify-end">
         <button

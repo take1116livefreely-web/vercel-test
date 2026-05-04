@@ -69,14 +69,18 @@ export type Database = {
           responder_id: string | null
           created_at: string
           tags: string[]
+          action_type: string | null
+          result_type: string | null
         }
         Insert: {
           incident_id: string
           content: string
           responder_id: string
           tags?: string[]
+          action_type?: string | null
+          result_type?: string | null
         }
-        Update: { content?: string; tags?: string[] }
+        Update: { content?: string; tags?: string[]; action_type?: string | null; result_type?: string | null }
         Relationships: []
       }
       categories: {

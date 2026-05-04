@@ -223,3 +223,7 @@ create trigger on_auth_user_created
 
 -- resolution カラム追加（解決済み時の解決内容）
 alter table public.incidents add column if not exists resolution text;
+
+-- 対応履歴に対応種別・結果カラム追加（AI学習・統計用）
+alter table public.responses add column if not exists action_type text;
+alter table public.responses add column if not exists result_type text;

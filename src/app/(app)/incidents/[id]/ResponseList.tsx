@@ -13,6 +13,14 @@ type ResponseWithFiles = {
   created_at: string
   responder: { name: string } | null
   files: IncidentFile[]
+  action_type: string | null
+  result_type: string | null
+}
+
+const RESULT_BADGE: Record<string, string> = {
+  '効果なし': 'bg-gray-100 text-gray-500 border-gray-200',
+  '部分改善': 'bg-yellow-50 text-yellow-700 border-yellow-200',
+  '解決':     'bg-green-50 text-green-700 border-green-200',
 }
 
 type Props = {
@@ -71,7 +79,19 @@ export default function ResponseList({ responses, currentUserId, isAdmin }: Prop
         return (
           <div key={res.id} className="bg-white rounded-xl border border-gray-200 p-4 ml-6">
             <div className="flex items-center justify-between mb-2">
-              <p className="text-sm font-medium text-blue-700">{res.responder?.name ?? '削除済みユーザー'}</p>
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className="text-sm font-medium text-blue-700">{res.responder?.name ?? '削除済みユーザー'}</p>
+                {res.action_type && (
+                  <span className="text-xs px-1.5 py-0.5 rounded border bg-blue-50 text-blue-600 border-blue-200">
+                    {res.action_type}
+                  </span>
+                )}
+                {res.result_type && (
+                  <span className={`text-xs px-1.5 py-0.5 rounded border ${RESULT_BADGE[res.result_type] ?? 'bg-gray-100 text-gray-500 border-gray-200'}`}>
+                    {res.result_type}
+                  </span>
+                )}
+              </div>
               <div className="flex items-center gap-2">
                 <p className="text-xs text-gray-400">
                   {new Date(res.created_at).toLocaleString('ja-JP')}
