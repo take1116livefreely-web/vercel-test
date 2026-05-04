@@ -1,6 +1,5 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { parseTags } from '@/lib/tags'
 import TagBadge from '@/components/TagBadge'
 import StatusBadge from '@/components/StatusBadge'
 import SimpleNav from '@/components/SimpleNav'
@@ -28,7 +27,8 @@ export default async function HomePage({ searchParams }: Props) {
   const query = searchParams.q ?? ''
   const statusFilter = searchParams.status ?? ''
   const typeFilter = searchParams.type ?? ''
-  const tags = parseTags(query)
+  // スペース区切りでキーワード分割（# 不要）
+  const keywords = query.trim().split(/\s+/).filter(Boolean)
   const page = Math.max(1, Number(searchParams.page ?? 1))
   const from = (page - 1) * PAGE_SIZE
   const to = from + PAGE_SIZE - 1
@@ -43,9 +43,12 @@ export default async function HomePage({ searchParams }: Props) {
     .order('created_at', { ascending: false })
     .range(from, to)
 
-  if (tags.length > 0) {
-    countQuery = countQuery.contains('tags', tags)
-    incidentsQuery = incidentsQuery.contains('tags', tags)
+  // キーワードごとに title・ゼネコン・現場名・内容を横断 AND 検索
+  for (const kw of keywords) {
+    const p = `%${kw.replace(/[%_\\]/g, '\\$&')}%`
+    const or = `title.ilike.${p},general_contractor.ilike.${p},site_name.ilike.${p},content.ilike.${p},site_contact.ilike.${p}`
+    countQuery = countQuery.or(or)
+    incidentsQuery = incidentsQuery.or(or)
   }
 
   if (statusFilter) {
@@ -104,7 +107,7 @@ export default async function HomePage({ searchParams }: Props) {
             type="text"
             name="q"
             defaultValue={query}
-            placeholder="#清水　#モバイル　#通信不良"
+            placeholder="清水　通信不良　など"
             className="flex-1 border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <button
@@ -117,7 +120,7 @@ export default async function HomePage({ searchParams }: Props) {
         {/* ヒントテキストと右上ナビ */}
         <div className="flex items-center justify-between mt-1.5">
           <p className="text-xs text-gray-400">
-            ハッシュタグで AND 検索できます（例：#清水 #通信不良）
+            スペース区切りで AND 検索できます（例：清水 通信不良）
           </p>
           <SimpleNav page={currentPage} totalPages={totalPages} query={query} status={statusFilter || undefined} />
         </div>

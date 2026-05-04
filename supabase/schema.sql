@@ -129,6 +129,15 @@ alter table public.incidents
   add column if not exists incident_type text not null default 'trouble'
   check (incident_type in ('trouble', 'other'));
 
+-- フリーワード検索用 pg_trgm 拡張 + GIN インデックス
+create extension if not exists pg_trgm;
+
+create index if not exists incidents_title_trgm_idx           on public.incidents using gin (title           gin_trgm_ops);
+create index if not exists incidents_contractor_trgm_idx      on public.incidents using gin (general_contractor gin_trgm_ops);
+create index if not exists incidents_site_name_trgm_idx       on public.incidents using gin (site_name        gin_trgm_ops);
+create index if not exists incidents_content_trgm_idx         on public.incidents using gin (content          gin_trgm_ops);
+create index if not exists incidents_site_contact_trgm_idx    on public.incidents using gin (site_contact     gin_trgm_ops);
+
 -- =============================================
 -- 初期マスタデータ
 -- =============================================
