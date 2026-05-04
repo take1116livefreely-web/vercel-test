@@ -17,6 +17,9 @@ type ResponseWithFiles = {
   result_type: string | null
 }
 
+const ACTION_TYPES = ['確認作業', '再起動・リセット', '部品交換', '設定変更', '業者手配', 'その他'] as const
+const RESULT_TYPES = ['効果なし', '部分改善', '解決'] as const
+
 const RESULT_BADGE: Record<string, string> = {
   '効果なし': 'bg-gray-100 text-gray-500 border-gray-200',
   '部分改善': 'bg-yellow-50 text-yellow-700 border-yellow-200',
@@ -33,6 +36,8 @@ export default function ResponseList({ responses, currentUserId, isAdmin }: Prop
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editContent, setEditContent] = useState('')
+  const [editActionType, setEditActionType] = useState<string>('')
+  const [editResultType, setEditResultType] = useState<string>('')
   const [filesMap, setFilesMap] = useState<Record<string, IncidentFile[]>>(
     Object.fromEntries(responses.map((r) => [r.id, r.files]))
   )
@@ -41,13 +46,19 @@ export default function ResponseList({ responses, currentUserId, isAdmin }: Prop
   function startEdit(res: ResponseWithFiles) {
     setEditingId(res.id)
     setEditContent(res.content)
+    setEditActionType(res.action_type ?? '')
+    setEditResultType(res.result_type ?? '')
   }
 
   async function handleEdit(id: string) {
     const res = await fetch(`/api/responses/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content: editContent }),
+      body: JSON.stringify({
+        content: editContent,
+        action_type: editActionType || null,
+        result_type: editResultType || null,
+      }),
     })
     if (res.ok) {
       setEditingId(null)
@@ -114,6 +125,22 @@ export default function ResponseList({ responses, currentUserId, isAdmin }: Prop
                   rows={4}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                 />
+                <div className="flex flex-wrap gap-3">
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs text-gray-500 whitespace-nowrap">対応種別</label>
+                    <select value={editActionType} onChange={(e) => setEditActionType(e.target.value)} className="border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500">
+                      <option value="">未選択</option>
+                      {ACTION_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs text-gray-500 whitespace-nowrap">結果</label>
+                    <select value={editResultType} onChange={(e) => setEditResultType(e.target.value)} className="border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500">
+                      <option value="">未選択</option>
+                      {RESULT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                  </div>
+                </div>
                 <div className="flex gap-2">
                   <button onClick={() => handleEdit(res.id)} className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded">保存</button>
                   <button onClick={() => setEditingId(null)} className="text-xs text-gray-500 hover:text-gray-700 px-3 py-1 rounded border">キャンセル</button>

@@ -26,6 +26,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   } else {
     update.closed_at = null
     update.closed_by = null
+    update.resolution = null
   }
 
   const { error } = await admin.from('incidents').update(update).eq('id', params.id)

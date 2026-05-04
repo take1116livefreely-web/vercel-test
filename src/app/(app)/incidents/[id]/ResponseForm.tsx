@@ -14,7 +14,7 @@ const selectCls = 'border border-gray-300 rounded-lg px-3 py-2 text-sm focus:out
 export default function ResponseForm({ incidentId, userId }: Props) {
   const [content, setContent] = useState('')
   const [actionType, setActionType] = useState<string>('その他')
-  const [resultType, setResultType] = useState<string>('効果なし')
+  const [resultType, setResultType] = useState<string>('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
@@ -41,7 +41,7 @@ export default function ResponseForm({ incidentId, userId }: Props) {
     } else {
       setContent('')
       setActionType('その他')
-      setResultType('効果なし')
+      setResultType('')
       router.refresh()
     }
     setLoading(false)
@@ -69,6 +69,7 @@ export default function ResponseForm({ incidentId, userId }: Props) {
             結果 <span className="text-red-500">*</span>
           </label>
           <select value={resultType} onChange={(e) => setResultType(e.target.value)} className={selectCls}>
+            <option value="" disabled>結果を選択 *</option>
             {RESULT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
           </select>
         </div>
@@ -77,7 +78,7 @@ export default function ResponseForm({ incidentId, userId }: Props) {
       <div className="flex justify-end">
         <button
           type="submit"
-          disabled={loading || !content.trim()}
+          disabled={loading || !content.trim() || !resultType}
           className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium px-5 py-2 rounded-lg"
         >
           {loading ? '送信中...' : '対応を追加'}
