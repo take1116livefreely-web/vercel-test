@@ -46,8 +46,9 @@ export default function ResponseList({ responses, currentUserId, isAdmin }: Prop
   function startEdit(res: ResponseWithFiles) {
     setEditingId(res.id)
     setEditContent(res.content)
-    setEditActionType(res.action_type ?? '')
-    setEditResultType(res.result_type ?? '')
+    const at = res.action_type ?? ''
+    setEditActionType(at)
+    setEditResultType(at === '確認作業' ? '効果なし' : (res.result_type ?? ''))
   }
 
   async function handleEdit(id: string) {
@@ -128,14 +129,27 @@ export default function ResponseList({ responses, currentUserId, isAdmin }: Prop
                 <div className="flex flex-wrap gap-3">
                   <div className="flex items-center gap-2">
                     <label className="text-xs text-gray-500 whitespace-nowrap">対応種別</label>
-                    <select value={editActionType} onChange={(e) => setEditActionType(e.target.value)} className="border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <select
+                      value={editActionType}
+                      onChange={(e) => {
+                        const v = e.target.value
+                        setEditActionType(v)
+                        if (v === '確認作業') setEditResultType('効果なし')
+                      }}
+                      className="border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
                       <option value="">未選択</option>
                       {ACTION_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
                     </select>
                   </div>
                   <div className="flex items-center gap-2">
                     <label className="text-xs text-gray-500 whitespace-nowrap">結果</label>
-                    <select value={editResultType} onChange={(e) => setEditResultType(e.target.value)} className="border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <select
+                      value={editResultType}
+                      onChange={(e) => setEditResultType(e.target.value)}
+                      disabled={editActionType === '確認作業'}
+                      className="border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
+                    >
                       <option value="">未選択</option>
                       {RESULT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
                     </select>

@@ -107,16 +107,29 @@ export default function ResponseForm({ incidentId, userId, incidentType }: Props
         <div className="flex flex-wrap gap-3 mb-2">
           <div className="flex items-center gap-2">
             <label className="text-xs text-gray-500 whitespace-nowrap">対応種別</label>
-            <select value={actionType} onChange={(e) => setActionType(e.target.value)} className={selectCls}>
+            <select
+              value={actionType}
+              onChange={(e) => {
+                const v = e.target.value
+                setActionType(v)
+                if (v === '確認作業') setResultType('効果なし')
+              }}
+              className={selectCls}
+            >
               {ACTION_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
             </select>
           </div>
           <div className="flex items-center gap-2">
             <label className="text-xs text-gray-500 whitespace-nowrap">
-              結果 <span className="text-red-500">*</span>
+              結果 {actionType !== '確認作業' && <span className="text-red-500">*</span>}
             </label>
-            <select value={resultType} onChange={(e) => setResultType(e.target.value)} className={selectCls}>
-              <option value="" disabled>結果を選択 *</option>
+            <select
+              value={resultType}
+              onChange={(e) => setResultType(e.target.value)}
+              disabled={actionType === '確認作業'}
+              className={`${selectCls} disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed`}
+            >
+              {actionType !== '確認作業' && <option value="" disabled>結果を選択 *</option>}
               {RESULT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
             </select>
             <span className="text-xs text-gray-400 whitespace-nowrap">（AI学習精度に影響します）</span>
