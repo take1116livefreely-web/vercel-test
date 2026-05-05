@@ -17,6 +17,8 @@ const inputCls = 'border border-gray-300 rounded px-2 py-1 text-sm focus:outline
 export default function ContactsClient({ contacts }: { contacts: Contact[] }) {
   const [query, setQuery] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [editGeneralContractor, setEditGeneralContractor] = useState('')
+  const [editSiteName, setEditSiteName] = useState('')
   const [editSiteContact, setEditSiteContact] = useState('')
   const [editPhoneNumber, setEditPhoneNumber] = useState('')
   const [saving, setSaving] = useState(false)
@@ -37,6 +39,8 @@ export default function ContactsClient({ contacts }: { contacts: Contact[] }) {
 
   function startEdit(c: Contact) {
     setEditingId(c.id)
+    setEditGeneralContractor(c.general_contractor)
+    setEditSiteName(c.site_name)
     setEditSiteContact(c.site_contact)
     setEditPhoneNumber(c.phone_number ?? '')
   }
@@ -46,7 +50,12 @@ export default function ContactsClient({ contacts }: { contacts: Contact[] }) {
     const res = await fetch(`/api/contacts/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ site_contact: editSiteContact, phone_number: editPhoneNumber }),
+      body: JSON.stringify({
+        general_contractor: editGeneralContractor,
+        site_name: editSiteName,
+        site_contact: editSiteContact,
+        phone_number: editPhoneNumber,
+      }),
     })
     setSaving(false)
     if (res.ok) {
@@ -110,27 +119,39 @@ export default function ContactsClient({ contacts }: { contacts: Contact[] }) {
                             <input
                               value={editSiteContact}
                               onChange={(e) => setEditSiteContact(e.target.value)}
-                              className={`${inputCls} w-28`}
+                              className={`${inputCls} w-24`}
                             />
                             <span className="text-sm text-gray-700 shrink-0">様</span>
                           </div>
                         </td>
-                        <td className="px-3 py-2 text-gray-600 text-xs">{c.general_contractor}</td>
-                        <td className="px-3 py-2 text-gray-600 text-xs">{c.site_name}</td>
+                        <td className="px-3 py-2">
+                          <input
+                            value={editGeneralContractor}
+                            onChange={(e) => setEditGeneralContractor(e.target.value)}
+                            className={`${inputCls} w-full`}
+                          />
+                        </td>
+                        <td className="px-3 py-2">
+                          <input
+                            value={editSiteName}
+                            onChange={(e) => setEditSiteName(e.target.value)}
+                            className={`${inputCls} w-full`}
+                          />
+                        </td>
                         <td className="px-3 py-2">
                           <input
                             value={editPhoneNumber}
                             onChange={(e) => setEditPhoneNumber(e.target.value)}
                             type="tel"
                             placeholder="ハイフンなし"
-                            className={`${inputCls} w-36 font-mono`}
+                            className={`${inputCls} w-32 font-mono`}
                           />
                         </td>
                         <td className="px-3 py-2">
                           <div className="flex items-center gap-1">
                             <button
                               onClick={() => handleSave(c.id)}
-                              disabled={saving || !editSiteContact.trim()}
+                              disabled={saving || !editSiteContact.trim() || !editGeneralContractor.trim() || !editSiteName.trim()}
                               className="text-xs bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-2 py-1 rounded"
                             >
                               {saving ? '保存中...' : '保存'}

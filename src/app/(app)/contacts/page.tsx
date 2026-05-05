@@ -7,6 +7,7 @@ export default async function ContactsPage() {
   const { data } = await supabase
     .from('contacts')
     .select('id, site_contact, phone_number, general_contractor, site_name')
+    .not('phone_number', 'is', null)
     .order('general_contractor', { ascending: true })
     .order('site_name', { ascending: true })
     .order('site_contact', { ascending: true })
