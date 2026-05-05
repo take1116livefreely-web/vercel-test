@@ -7,13 +7,13 @@ import { createClient } from '@/lib/supabase/client'
 const ACTION_TYPES = ['確認作業', '再起動・リセット', '部品交換', '設定変更', '業者手配', 'その他'] as const
 const RESULT_TYPES = ['効果なし', '部分改善', '解決'] as const
 
-type Props = { incidentId: string; userId: string }
+type Props = { incidentId: string; userId: string; incidentType: 'trouble' | 'other' }
 
 const selectCls = 'border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
 const MAX_FILES = 5
 const MAX_OTHER_BYTES = 5 * 1024 * 1024
 
-export default function ResponseForm({ incidentId, userId }: Props) {
+export default function ResponseForm({ incidentId, userId, incidentType }: Props) {
   const [content, setContent] = useState('')
   const [actionType, setActionType] = useState<string>('その他')
   const [resultType, setResultType] = useState<string>('')
@@ -103,24 +103,26 @@ export default function ResponseForm({ incidentId, userId }: Props) {
         rows={3}
         className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none mb-2"
       />
-      <div className="flex flex-wrap gap-3 mb-2">
-        <div className="flex items-center gap-2">
-          <label className="text-xs text-gray-500 whitespace-nowrap">対応種別</label>
-          <select value={actionType} onChange={(e) => setActionType(e.target.value)} className={selectCls}>
-            {ACTION_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
-          </select>
+      {incidentType === 'trouble' && (
+        <div className="flex flex-wrap gap-3 mb-2">
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-gray-500 whitespace-nowrap">対応種別</label>
+            <select value={actionType} onChange={(e) => setActionType(e.target.value)} className={selectCls}>
+              {ACTION_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+            </select>
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-gray-500 whitespace-nowrap">
+              結果 <span className="text-red-500">*</span>
+            </label>
+            <select value={resultType} onChange={(e) => setResultType(e.target.value)} className={selectCls}>
+              <option value="" disabled>結果を選択 *</option>
+              {RESULT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+            </select>
+            <span className="text-xs text-gray-400 whitespace-nowrap">（AI学習精度に影響します）</span>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <label className="text-xs text-gray-500 whitespace-nowrap">
-            結果 <span className="text-red-500">*</span>
-          </label>
-          <select value={resultType} onChange={(e) => setResultType(e.target.value)} className={selectCls}>
-            <option value="" disabled>結果を選択 *</option>
-            {RESULT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
-          </select>
-          <span className="text-xs text-gray-400 whitespace-nowrap">（AI学習精度に影響します）</span>
-        </div>
-      </div>
+      )}
       <div className="mb-2">
         <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleFileChange} />
         {pendingFiles.length < MAX_FILES && (
@@ -154,7 +156,7 @@ export default function ResponseForm({ incidentId, userId }: Props) {
       <div className="flex justify-end">
         <button
           type="submit"
-          disabled={loading || !content.trim() || !resultType}
+          disabled={loading || !content.trim() || (incidentType === 'trouble' && !resultType)}
           className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium px-5 py-2 rounded-lg"
         >
           {loading ? '送信中...' : '対応を追加'}

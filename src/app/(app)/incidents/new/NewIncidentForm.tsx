@@ -31,16 +31,28 @@ export default function NewIncidentForm({ categories }: Props) {
   useEffect(() => {
     if (!generalContractor.trim() || !siteName.trim() || !siteContact.trim()) return
     const timer = setTimeout(async () => {
+      // 入力欄の「様」を除去してDBと照合（DBはクリーニング済みで様なし）
+      const cleanedContact = siteContact.trim().replace(/\s*様\s*$/, '').trim()
+      if (!cleanedContact) return
       const { data } = await supabase
         .from('incidents')
         .select('phone_number')
         .eq('general_contractor', generalContractor.trim())
         .eq('site_name', siteName.trim())
-        .eq('site_contact', siteContact.trim())
+        .eq('site_contact', cleanedContact)
         .not('phone_number', 'is', null)
         .limit(10) as any
       if (!data?.length) return
-      const phones = [...new Set((data as { phone_number: string | null }[]).map(d => d.phone_number).filter(Boolean))] as string[]
+      // ハイフンを除いて正規化した上で重複排除し、元の値を使う
+      const normalizeP = (p: string) => p.replace(/-/g, '')
+      const seen = new Set<string>()
+      const phones: string[] = []
+      for (const row of data as { phone_number: string | null }[]) {
+        const p = row.phone_number
+        if (!p) continue
+        const key = normalizeP(p)
+        if (!seen.has(key)) { seen.add(key); phones.push(p) }
+      }
       // 候補が1件だけ、かつ未入力 or 前回の自動入力値の場合のみ反映
       if (phones.length === 1 && (!phoneNumberRef.current || phoneWasAutoFilledRef.current)) {
         phoneWasAutoFilledRef.current = true

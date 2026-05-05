@@ -80,7 +80,7 @@ export default async function IncidentPage({ params }: Props) {
         isAdmin={isAdmin}
       />
 
-      <ResponseForm incidentId={params.id} userId={user!.id} />
+      <ResponseForm incidentId={params.id} userId={user!.id} incidentType={incident.incident_type ?? 'trouble'} />
     </div>
   )
 }
