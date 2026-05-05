@@ -5,23 +5,16 @@ export default async function ContactsPage() {
   const supabase = createClient()
 
   const { data } = await supabase
-    .from('incidents')
-    .select('site_contact, phone_number, general_contractor, site_name')
-    .not('site_contact', 'is', null)
-    .not('phone_number', 'is', null)
-    .order('created_at', { ascending: false })
-
-  const contacts = (data ?? []) as {
-    site_contact: string
-    phone_number: string
-    general_contractor: string
-    site_name: string
-  }[]
+    .from('contacts')
+    .select('id, site_contact, phone_number, general_contractor, site_name')
+    .order('general_contractor', { ascending: true })
+    .order('site_name', { ascending: true })
+    .order('site_contact', { ascending: true })
 
   return (
     <div>
       <h1 className="text-xl font-bold mb-6">連絡先一覧</h1>
-      <ContactsClient contacts={contacts} />
+      <ContactsClient contacts={(data ?? []) as any} />
     </div>
   )
 }

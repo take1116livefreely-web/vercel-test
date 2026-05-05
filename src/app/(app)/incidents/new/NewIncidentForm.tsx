@@ -35,29 +35,19 @@ export default function NewIncidentForm({ categories }: Props) {
       const cleanedContact = siteContact.trim().replace(/\s*様\s*$/, '').trim()
       if (!cleanedContact) return
       const { data } = await supabase
-        .from('incidents')
+        .from('contacts')
         .select('phone_number')
         .eq('general_contractor', generalContractor.trim())
         .eq('site_name', siteName.trim())
         .eq('site_contact', cleanedContact)
         .not('phone_number', 'is', null)
-        .limit(10) as any
+        .limit(1) as any
       if (!data?.length) return
-      // ハイフンを除いて正規化した上で重複排除し、元の値を使う
-      const normalizeP = (p: string) => p.replace(/-/g, '')
-      const seen = new Set<string>()
-      const phones: string[] = []
-      for (const row of data as { phone_number: string | null }[]) {
-        const p = row.phone_number
-        if (!p) continue
-        const key = normalizeP(p)
-        if (!seen.has(key)) { seen.add(key); phones.push(p) }
-      }
-      // 候補が1件だけ、かつ未入力 or 前回の自動入力値の場合のみ反映
-      if (phones.length === 1 && (!phoneNumberRef.current || phoneWasAutoFilledRef.current)) {
+      const phone = (data[0] as { phone_number: string }).phone_number
+      if (phone && (!phoneNumberRef.current || phoneWasAutoFilledRef.current)) {
         phoneWasAutoFilledRef.current = true
         setPhoneAutoFilled(true)
-        setPhoneNumber(phones[0])
+        setPhoneNumber(phone)
       }
     }, 400)
     return () => clearTimeout(timer)
@@ -93,6 +83,19 @@ export default function NewIncidentForm({ categories }: Props) {
     if (err) {
       setError('登録に失敗しました。もう一度お試しください。')
     } else {
+      // 連絡先テーブルに upsert（既存レコードは上書きしない）
+      if (siteContact.trim() && generalContractor.trim() && siteName.trim()) {
+        fetch('/api/contacts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            general_contractor: generalContractor.trim(),
+            site_name: siteName.trim(),
+            site_contact: siteContact.trim().replace(/\s*様\s*$/, '').trim(),
+            phone_number: phoneNumber.trim() || null,
+          }),
+        }).catch(() => {})
+      }
       router.push(`/incidents/${(incident as { id: string }).id}`)
     }
     setLoading(false)
