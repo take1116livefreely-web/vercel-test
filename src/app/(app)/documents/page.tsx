@@ -37,12 +37,18 @@ export default async function DocumentsPage() {
   }
 
   const systemMap: Record<string, string> = {}
-  for (const s of sysList) systemMap[s.id] = s.name
+  const systemCategoryMap: Record<string, string> = {}
+  for (const s of sysList) {
+    systemMap[s.id] = s.name
+    const cat = cats.find((c: any) => c.id === s.category_id)
+    if (cat) systemCategoryMap[s.id] = cat.name
+  }
 
   const documents = (rawDocs ?? []).map((d: any) => ({
     ...d,
     uploaderName: d.uploaded_by ? (uploaderMap[d.uploaded_by] ?? '削除済みユーザー') : '削除済みユーザー',
     systemName: d.system_id ? (systemMap[d.system_id] ?? '') : '',
+    categoryName: d.system_id ? (systemCategoryMap[d.system_id] ?? '') : '',
   }))
 
   return (

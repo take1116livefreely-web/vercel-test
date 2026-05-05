@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import type { CategoryWithSystems } from '@/lib/supabase/types'
@@ -13,6 +13,7 @@ type DocRow = {
   size: number
   system_id: string | null
   systemName: string
+  categoryName: string
   uploaded_by: string | null
   uploaderName: string
   ai_training: boolean
@@ -39,6 +40,7 @@ function formatDate(iso: string) {
 
 export default function DocumentsClient({ documents: initialDocs, categories, userRole, userId }: Props) {
   const [docs, setDocs] = useState<DocRow[]>(initialDocs)
+  const [query, setQuery] = useState('')
   const [file, setFile] = useState<File | null>(null)
   const [systemId, setSystemId] = useState('')
   const [uploading, setUploading] = useState(false)
@@ -51,6 +53,18 @@ export default function DocumentsClient({ documents: initialDocs, categories, us
 
   const isAdminOrDeveloper = userRole === 'admin' || userRole === 'developer'
   const isDeveloper = userRole === 'developer'
+
+  const results = useMemo(() => {
+    const tokens = query.trim().split(/[\s　]+/).filter(Boolean)
+    if (tokens.length === 0) return docs
+    return docs.filter((d) =>
+      tokens.every((t) =>
+        d.name.includes(t) ||
+        d.categoryName.includes(t) ||
+        d.systemName.includes(t)
+      )
+    )
+  }, [query, docs])
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0] ?? null
@@ -104,19 +118,38 @@ export default function DocumentsClient({ documents: initialDocs, categories, us
     setUploading(false)
   }
 
-  async function openUrl(id: string, download = false) {
-    setLoadingId(id)
+  async function getSignedUrl(id: string): Promise<string | null> {
     const res = await fetch(`/api/shared-documents/${id}/url`)
     const json = await res.json()
+    return json.url ?? null
+  }
+
+  async function handleOpen(id: string) {
+    setLoadingId(id)
+    const url = await getSignedUrl(id)
     setLoadingId(null)
-    if (!json.url) { alert('URLの取得に失敗しました'); return }
-    if (download) {
+    if (!url) { alert('URLの取得に失敗しました'); return }
+    window.open(url, '_blank')
+  }
+
+  async function handleDownload(doc: DocRow) {
+    setLoadingId(doc.id)
+    const url = await getSignedUrl(doc.id)
+    setLoadingId(null)
+    if (!url) { alert('URLの取得に失敗しました'); return }
+
+    try {
+      const blob = await fetch(url).then((r) => r.blob())
+      const objectUrl = URL.createObjectURL(blob)
       const a = document.createElement('a')
-      a.href = json.url
-      a.download = docs.find((d) => d.id === id)?.name ?? 'document.pdf'
+      a.href = objectUrl
+      a.download = doc.name
+      document.body.appendChild(a)
       a.click()
-    } else {
-      window.open(json.url, '_blank')
+      document.body.removeChild(a)
+      URL.revokeObjectURL(objectUrl)
+    } catch {
+      alert('ダウンロードに失敗しました')
     }
   }
 
@@ -197,16 +230,27 @@ export default function DocumentsClient({ documents: initialDocs, categories, us
         {uploadError && <p className="text-xs text-red-600 mt-2">{uploadError}</p>}
       </div>
 
+      {/* Search */}
+      <input
+        type="text"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="例）マニュアル　大成　CCTV"
+        className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+      />
+
       {/* Document list */}
-      {docs.length === 0 ? (
-        <p className="text-sm text-gray-500 text-center py-10">まだ書類がアップロードされていません</p>
+      {results.length === 0 ? (
+        <p className="text-sm text-gray-500 text-center py-10">
+          {docs.length === 0 ? 'まだ書類がアップロードされていません' : '該当する書類が見つかりません'}
+        </p>
       ) : (
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-200 text-left text-xs text-gray-500 font-medium">
                 <th className="px-4 py-3">ファイル名</th>
-                <th className="px-4 py-3">システム</th>
+                <th className="px-4 py-3">ジャンル / システム</th>
                 <th className="px-4 py-3">投稿者</th>
                 <th className="px-4 py-3">サイズ</th>
                 <th className="px-4 py-3">日付</th>
@@ -215,13 +259,18 @@ export default function DocumentsClient({ documents: initialDocs, categories, us
               </tr>
             </thead>
             <tbody>
-              {docs.map((doc) => {
+              {results.map((doc) => {
                 const isLoading = loadingId === doc.id
                 const isDeleting = deletingId === doc.id
                 return (
                   <tr key={doc.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
                     <td className="px-4 py-3 font-medium text-gray-800 max-w-xs truncate">{doc.name}</td>
-                    <td className="px-4 py-3 text-gray-500 text-xs">{doc.systemName || '—'}</td>
+                    <td className="px-4 py-3 text-gray-500 text-xs">
+                      {doc.systemName
+                        ? <>{doc.categoryName && <span className="text-gray-400">{doc.categoryName} / </span>}{doc.systemName}</>
+                        : '—'
+                      }
+                    </td>
                     <td className="px-4 py-3 text-gray-500 text-xs">{doc.uploaderName}</td>
                     <td className="px-4 py-3 text-gray-500 text-xs font-mono">{formatSize(doc.size)}</td>
                     <td className="px-4 py-3 text-gray-500 text-xs">{formatDate(doc.created_at)}</td>
@@ -239,18 +288,18 @@ export default function DocumentsClient({ documents: initialDocs, categories, us
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1">
                         <button
-                          onClick={() => openUrl(doc.id, false)}
+                          onClick={() => handleOpen(doc.id)}
                           disabled={isLoading}
                           className="text-xs text-blue-500 hover:text-blue-700 disabled:opacity-50 px-2 py-0.5 rounded border border-blue-200"
                         >
                           {isLoading ? '...' : '開く'}
                         </button>
                         <button
-                          onClick={() => openUrl(doc.id, true)}
+                          onClick={() => handleDownload(doc)}
                           disabled={isLoading}
                           className="text-xs text-gray-500 hover:text-gray-700 disabled:opacity-50 px-2 py-0.5 rounded border border-gray-200"
                         >
-                          DL
+                          {isLoading ? '...' : 'DL'}
                         </button>
                         {isAdminOrDeveloper && (
                           <button
@@ -268,7 +317,7 @@ export default function DocumentsClient({ documents: initialDocs, categories, us
               })}
             </tbody>
           </table>
-          <p className="text-xs text-gray-400 px-4 py-2 border-t border-gray-100">{docs.length} 件</p>
+          <p className="text-xs text-gray-400 px-4 py-2 border-t border-gray-100">{results.length} 件</p>
         </div>
       )}
     </div>
