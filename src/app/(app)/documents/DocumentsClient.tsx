@@ -125,11 +125,21 @@ export default function DocumentsClient({ documents: initialDocs, categories, us
   }
 
   async function handleOpen(id: string) {
+    // iOS Safari はawait後のwindow.openをブロックするため先に空ウィンドウを開く
+    const newWindow = window.open('', '_blank')
     setLoadingId(id)
     const url = await getSignedUrl(id)
     setLoadingId(null)
-    if (!url) { alert('URLの取得に失敗しました'); return }
-    window.open(url, '_blank')
+    if (!url) {
+      newWindow?.close()
+      alert('URLの取得に失敗しました')
+      return
+    }
+    if (newWindow) {
+      newWindow.location.href = url
+    } else {
+      window.location.href = url
+    }
   }
 
   async function handleDownload(doc: DocRow) {
