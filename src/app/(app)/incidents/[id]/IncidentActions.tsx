@@ -204,21 +204,21 @@ export default function IncidentActions({ incident, canEdit, initialFiles, curre
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-6 mb-4">
-      <div className="flex items-start justify-between gap-2 mb-3">
-        <h1 className="text-xl font-bold text-gray-800">{incident.title}</h1>
-        <div className="flex items-center gap-2 shrink-0">
+      <div className="flex flex-col gap-1 mb-3">
+        <div className="flex items-center justify-between gap-2">
           <p className="text-xs text-gray-400 whitespace-nowrap">
             {new Date(incident.created_at).toLocaleString('ja-JP')}
           </p>
           {canEdit && (
-            <>
+            <div className="flex items-center gap-2 shrink-0">
               <button onClick={() => setEditing(true)} className="text-xs text-blue-500 hover:text-blue-700 px-2 py-0.5 rounded border border-blue-200">編集</button>
               <button onClick={handleDelete} disabled={deleting} className="text-xs text-red-500 hover:text-red-700 disabled:opacity-50 px-2 py-0.5 rounded border border-red-200">
                 {deleting ? '削除中...' : '削除'}
               </button>
-            </>
+            </div>
           )}
         </div>
+        <h1 className="text-xl font-bold text-gray-800">{incident.title}</h1>
       </div>
 
       <div className="flex items-center gap-2 mb-3">
