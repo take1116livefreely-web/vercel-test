@@ -245,8 +245,8 @@ export default function DocumentsClient({ documents: initialDocs, categories, us
           {docs.length === 0 ? 'まだ書類がアップロードされていません' : '該当する書類が見つかりません'}
         </p>
       ) : (
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          <table className="w-full text-sm">
+        <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
+          <table className="w-full min-w-max text-sm">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-200 text-left text-xs text-gray-500 font-medium">
                 <th className="px-4 py-3">ファイル名</th>
