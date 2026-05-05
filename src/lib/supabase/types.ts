@@ -122,6 +122,30 @@ export type Database = {
         }
         Relationships: []
       }
+      shared_documents: {
+        Row: {
+          id: string
+          name: string
+          storage_path: string
+          size: number
+          system_id: string | null
+          uploaded_by: string | null
+          ai_training: boolean
+          created_at: string
+        }
+        Insert: {
+          name: string
+          storage_path: string
+          size: number
+          system_id?: string | null
+          uploaded_by?: string | null
+          ai_training?: boolean
+        }
+        Update: {
+          ai_training?: boolean
+        }
+        Relationships: []
+      }
     }
     Views: { [_ in never]: never }
     Functions: { [_ in never]: never }
@@ -137,5 +161,6 @@ export type AppUser = Database['public']['Tables']['users']['Row']
 export type Category = Database['public']['Tables']['categories']['Row']
 export type SystemItem = Database['public']['Tables']['systems']['Row']
 export type IncidentFile = Database['public']['Tables']['incident_files']['Row']
+export type SharedDocument = Database['public']['Tables']['shared_documents']['Row']
 
 export type CategoryWithSystems = Category & { systems: SystemItem[] }

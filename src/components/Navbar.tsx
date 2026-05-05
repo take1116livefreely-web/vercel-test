@@ -22,6 +22,9 @@ export default function Navbar({ user }: { user: AppUser }) {
         <Link href="/contacts" className="text-sm text-gray-600 hover:text-blue-600">
           連絡先
         </Link>
+        <Link href="/documents" className="text-sm text-gray-600 hover:text-blue-600">
+          書類共有
+        </Link>
         {(user.role === 'admin' || user.role === 'developer') && (
           <>
             <Link href="/admin/categories" className="text-sm text-gray-600 hover:text-blue-600">
