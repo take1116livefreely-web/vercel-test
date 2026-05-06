@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import Anthropic from '@anthropic-ai/sdk'
+import { waitUntil } from '@vercel/functions'
 
 const MODEL = 'claude-haiku-4-5-20251001'
 const MAX_RESPONSES = 10
@@ -106,17 +107,19 @@ ${noEffectCount >= 3 ? `\n※ 「効果なし」が${noEffectCount}件続いて�
       } catch {
         // ストリーム中断時もログ保存・close を保証するため握り潰す
       } finally {
-        // ストリーム成功・失敗・途中切断いずれの場合もログ保存してから close
-        if (inputTokens > 0) {
-          await (admin as any).from('ai_usage_logs').insert({
-            incident_id: params.id,
-            used_by: user.id,
-            model: MODEL,
-            input_tokens: inputTokens,
-            output_tokens: outputTokens,
-          }).catch(() => {})
-        }
         controller.close()
+        // waitUntil: レスポンス送信後もVercelが関数を生かし続けてDB保存を保証
+        if (inputTokens > 0) {
+          waitUntil(
+            (admin as any).from('ai_usage_logs').insert({
+              incident_id: params.id,
+              used_by: user.id,
+              model: MODEL,
+              input_tokens: inputTokens,
+              output_tokens: outputTokens,
+            }).catch(() => {})
+          )
+        }
       }
     },
   })
