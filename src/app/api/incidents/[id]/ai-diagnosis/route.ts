@@ -67,5 +67,17 @@ ${responsesText}
   })
 
   const diagnosis = message.content[0].type === 'text' ? message.content[0].text : ''
+
+  // トークン使用量をログ（失敗しても診断結果には影響させない）
+  try {
+    await (admin as any).from('ai_usage_logs').insert({
+      incident_id: params.id,
+      used_by: user.id,
+      model: 'claude-haiku-4-5-20251001',
+      input_tokens: message.usage.input_tokens,
+      output_tokens: message.usage.output_tokens,
+    })
+  } catch (_) {}
+
   return NextResponse.json({ diagnosis })
 }

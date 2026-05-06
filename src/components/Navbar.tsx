@@ -35,6 +35,11 @@ export default function Navbar({ user }: { user: AppUser }) {
             </Link>
           </>
         )}
+        {user.role === 'developer' && (
+          <Link href="/admin/stats" className="text-sm text-gray-600 hover:text-blue-600">
+            統計・AI
+          </Link>
+        )}
         <span className="text-sm text-gray-500">{user.name}</span>
         <button
           onClick={handleLogout}
