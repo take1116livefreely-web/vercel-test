@@ -29,7 +29,9 @@ export default async function IncidentPage({ params }: Props) {
   if (!incident) notFound()
 
   const { data: appUser } = await supabase.from('users').select('role').eq('id', user!.id).single()
-  const isAdmin = ['admin', 'developer'].includes((appUser as { role: string } | null)?.role ?? '')
+  const role = (appUser as { role: string } | null)?.role ?? ''
+  const isAdmin = ['admin', 'developer'].includes(role)
+  const isDeveloper = role === 'developer'
   const canEdit = isAdmin || incident.created_by === user!.id
 
   const responseIds = (responses ?? []).map((r: any) => r.id)
@@ -71,6 +73,7 @@ export default async function IncidentPage({ params }: Props) {
         initialFiles={(incidentFiles ?? []) as IncidentFile[]}
         currentUserId={user!.id}
         isAdmin={isAdmin}
+        isDeveloper={isDeveloper}
         categories={categories}
       />
 

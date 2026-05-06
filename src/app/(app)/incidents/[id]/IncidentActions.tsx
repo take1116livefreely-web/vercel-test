@@ -37,6 +37,7 @@ type Props = {
   initialFiles: IncidentFile[]
   currentUserId: string
   isAdmin: boolean
+  isDeveloper: boolean
   categories: CategoryWithSystems[]
 }
 
@@ -48,7 +49,7 @@ const STATUS_OPTIONS: { value: Status; label: string }[] = [
 
 const selectCls = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
 
-export default function IncidentActions({ incident, canEdit, initialFiles, currentUserId, isAdmin, categories }: Props) {
+export default function IncidentActions({ incident, canEdit, initialFiles, currentUserId, isAdmin, isDeveloper, categories }: Props) {
   const [editing, setEditing] = useState(false)
   const [title, setTitle] = useState(incident.title)
   const [contractor, setContractor] = useState(incident.general_contractor)
@@ -67,6 +68,9 @@ export default function IncidentActions({ incident, canEdit, initialFiles, curre
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [files, setFiles] = useState<IncidentFile[]>(initialFiles)
+  const [aiDiagnosis, setAiDiagnosis] = useState('')
+  const [aiLoading, setAiLoading] = useState(false)
+  const [showAiModal, setShowAiModal] = useState(false)
   const router = useRouter()
 
   async function handleSave() {
@@ -103,6 +107,20 @@ export default function IncidentActions({ incident, canEdit, initialFiles, curre
       setDeleting(false)
       const json = await res.json()
       alert(json.error ?? '削除に失敗しました')
+    }
+  }
+
+  async function handleAiDiagnosis() {
+    setAiDiagnosis('')
+    setAiLoading(true)
+    setShowAiModal(true)
+    const res = await fetch(`/api/incidents/${incident.id}/ai-diagnosis`, { method: 'POST' })
+    const json = await res.json()
+    setAiLoading(false)
+    if (res.ok) {
+      setAiDiagnosis(json.diagnosis)
+    } else {
+      setAiDiagnosis(`エラー: ${json.error ?? '診断に失敗しました'}`)
     }
   }
 
@@ -209,14 +227,24 @@ export default function IncidentActions({ incident, canEdit, initialFiles, curre
           <p className="text-xs text-gray-400 whitespace-nowrap">
             {new Date(incident.created_at).toLocaleString('ja-JP')}
           </p>
-          {canEdit && (
-            <div className="flex items-center gap-2 shrink-0">
-              <button onClick={() => setEditing(true)} className="text-xs text-blue-500 hover:text-blue-700 px-2 py-0.5 rounded border border-blue-200">編集</button>
-              <button onClick={handleDelete} disabled={deleting} className="text-xs text-red-500 hover:text-red-700 disabled:opacity-50 px-2 py-0.5 rounded border border-red-200">
-                {deleting ? '削除中...' : '削除'}
+          <div className="flex items-center gap-2 shrink-0">
+            {isDeveloper && (
+              <button
+                onClick={handleAiDiagnosis}
+                className="text-xs text-purple-600 hover:text-purple-800 px-2 py-0.5 rounded border border-purple-200 bg-purple-50 hover:bg-purple-100"
+              >
+                AI診断
               </button>
-            </div>
-          )}
+            )}
+            {canEdit && (
+              <>
+                <button onClick={() => setEditing(true)} className="text-xs text-blue-500 hover:text-blue-700 px-2 py-0.5 rounded border border-blue-200">編集</button>
+                <button onClick={handleDelete} disabled={deleting} className="text-xs text-red-500 hover:text-red-700 disabled:opacity-50 px-2 py-0.5 rounded border border-red-200">
+                  {deleting ? '削除中...' : '削除'}
+                </button>
+              </>
+            )}
+          </div>
         </div>
         <h1 className="text-xl font-bold text-gray-800">{incident.title}</h1>
       </div>
@@ -290,6 +318,31 @@ export default function IncidentActions({ incident, canEdit, initialFiles, curre
           onUploaded={(f) => setFiles((prev) => [...prev, f])}
         />
       </div>
+
+      {showAiModal && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg p-6 space-y-4 max-h-[80vh] flex flex-col">
+            <div className="flex items-center justify-between">
+              <h2 className="text-base font-semibold text-gray-800 flex items-center gap-2">
+                <span className="text-purple-600">AI診断</span>
+                <span className="text-xs font-normal text-gray-400">claude-haiku</span>
+              </h2>
+              <button onClick={() => setShowAiModal(false)} className="text-gray-400 hover:text-gray-600 text-lg leading-none">✕</button>
+            </div>
+            <div className="flex-1 overflow-y-auto">
+              {aiLoading ? (
+                <div className="flex items-center gap-2 text-sm text-gray-500 py-6 justify-center">
+                  <span className="animate-spin inline-block w-4 h-4 border-2 border-purple-400 border-t-transparent rounded-full" />
+                  診断中...
+                </div>
+              ) : (
+                <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">{aiDiagnosis}</p>
+              )}
+            </div>
+            <p className="text-xs text-gray-400">※ AI生成の内容です。必ず実際の状況を確認してください。</p>
+          </div>
+        </div>
+      )}
 
       {showResolutionModal && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
