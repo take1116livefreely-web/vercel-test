@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import Anthropic from '@anthropic-ai/sdk'
-import { waitUntil } from '@vercel/functions'
 
 const MODEL = 'claude-haiku-4-5-20251001'
 const MAX_RESPONSES = 10
@@ -86,41 +85,29 @@ ${noEffectCount >= 3 ? `\n※ 「効果なし」が${noEffectCount}件続いて�
     return NextResponse.json({ error: `AI診断に失敗しました: ${msg}` }, { status: 500 })
   }
 
-  // テキストチャンクをそのままストリームで返す
+  // ログをストリーミング開始前にメインハンドラで保存（確実に実行される）
+  // トークン数は文字数から推定（日本語: 約2文字=1トークン）
+  const estimatedInputTokens = Math.ceil((SYSTEM_PROMPT.length + userPrompt.length) / 2)
+  await (admin as any).from('ai_usage_logs').insert({
+    incident_id: params.id,
+    used_by: user.id,
+    model: MODEL,
+    input_tokens: estimatedInputTokens,
+    output_tokens: 800, // 推定値（max_tokens 1200 の約67%）
+  }).catch(() => {})
+
+  // テキストチャンクをストリームで返す（ログ保存は完了済み）
   const encoder = new TextEncoder()
   const readable = new ReadableStream({
     async start(controller) {
-      let inputTokens = 0
-      let outputTokens = 0
       try {
         for await (const event of stream) {
           if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
             controller.enqueue(encoder.encode(event.delta.text))
           }
-          if (event.type === 'message_delta' && event.usage) {
-            outputTokens = event.usage.output_tokens
-          }
-          if (event.type === 'message_start' && event.message.usage) {
-            inputTokens = event.message.usage.input_tokens
-          }
         }
-      } catch {
-        // ストリーム中断時もログ保存・close を保証するため握り潰す
-      } finally {
-        controller.close()
-        // waitUntil: レスポンス送信後もVercelが関数を生かし続けてDB保存を保証
-        if (inputTokens > 0) {
-          waitUntil(
-            (admin as any).from('ai_usage_logs').insert({
-              incident_id: params.id,
-              used_by: user.id,
-              model: MODEL,
-              input_tokens: inputTokens,
-              output_tokens: outputTokens,
-            }).catch(() => {})
-          )
-        }
-      }
+      } catch { }
+      controller.close()
     },
   })
 
