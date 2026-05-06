@@ -97,13 +97,15 @@ ${noEffectCount >= 3 ? `\n※ 「効果なし」が${noEffectCount}件続いて�
   // ログをストリーミング開始前にメインハンドラで保存（確実に実行される）
   // トークン数は文字数から推定（日本語: 約2文字=1トークン）
   const estimatedInputTokens = Math.ceil((SYSTEM_PROMPT.length + userPrompt.length) / 2)
-  await (admin as any).from('ai_usage_logs').insert({
-    incident_id: params.id,
-    used_by: user.id,
-    model: MODEL,
-    input_tokens: estimatedInputTokens,
-    output_tokens: 800, // 推定値（max_tokens 1200 の約67%）
-  }).catch(() => {})
+  try {
+    await (admin as any).from('ai_usage_logs').insert({
+      incident_id: params.id,
+      used_by: user.id,
+      model: MODEL,
+      input_tokens: estimatedInputTokens,
+      output_tokens: 800,
+    })
+  } catch { }
 
   // テキストチャンクをストリームで返す（ログ保存は完了済み）
   const encoder = new TextEncoder()
