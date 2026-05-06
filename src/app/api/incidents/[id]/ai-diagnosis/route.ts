@@ -102,18 +102,18 @@ ${noEffectCount >= 3 ? `\n※ 「効果なし」が${noEffectCount}件続いて�
           inputTokens = event.message.usage.input_tokens
         }
       }
-      controller.close()
-
-      // ログ保存（ストリーム完了後、非同期・失敗しても無視）
+      // ストリームを閉じる前にログ保存（close後はVercelが関数を終了するため）
       if (inputTokens > 0) {
-        ;(admin as any).from('ai_usage_logs').insert({
+        await (admin as any).from('ai_usage_logs').insert({
           incident_id: params.id,
           used_by: user.id,
           model: MODEL,
           input_tokens: inputTokens,
           output_tokens: outputTokens,
-        }).then(() => {}).catch(() => {})
+        }).catch(() => {})
       }
+
+      controller.close()
     },
   })
 
