@@ -12,6 +12,7 @@ export type Database = {
       incidents: {
         Row: {
           id: string
+          short_id: string
           title: string
           general_contractor: string
           site_name: string
@@ -30,6 +31,7 @@ export type Database = {
           resolution: string | null
         }
         Insert: {
+          short_id?: string
           title: string
           general_contractor: string
           site_name: string

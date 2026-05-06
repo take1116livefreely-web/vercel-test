@@ -34,6 +34,15 @@ export default async function IncidentPage({ params }: Props) {
   const isDeveloper = role === 'developer'
   const canEdit = isAdmin || incident.created_by === user!.id
 
+  // お気に入り状態を取得
+  const { data: favData } = await supabase
+    .from('incident_favorites' as any)
+    .select('incident_id')
+    .eq('user_id', user!.id)
+    .eq('incident_id', params.id)
+    .single()
+  const isFavorited = !!favData
+
   const responseIds = (responses ?? []).map((r: any) => r.id)
   const { data: responseFiles } = responseIds.length > 0
     ? await supabase.from('incident_files').select('*').in('response_id', responseIds).order('created_at', { ascending: true })
@@ -55,6 +64,7 @@ export default async function IncidentPage({ params }: Props) {
       <IncidentActions
         incident={{
           id: incident.id,
+          short_id: incident.short_id ?? null,
           title: incident.title,
           general_contractor: incident.general_contractor,
           site_name: incident.site_name,
@@ -74,6 +84,7 @@ export default async function IncidentPage({ params }: Props) {
         currentUserId={user!.id}
         isAdmin={isAdmin}
         isDeveloper={isDeveloper}
+        isFavorited={isFavorited}
         categories={categories}
       />
 

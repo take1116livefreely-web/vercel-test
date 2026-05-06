@@ -6,6 +6,7 @@ import StatusBadge from '@/components/StatusBadge'
 import CategoryDeviceSelect from '@/components/CategoryDeviceSelect'
 import FileList from '@/components/FileList'
 import FileUpload from '@/components/FileUpload'
+import FavoriteButton from '@/components/FavoriteButton'
 import { formatPhone } from '@/lib/phone'
 import type { IncidentFile } from '@/lib/supabase/types'
 import type { CategoryWithSystems } from '@/lib/categories'
@@ -16,6 +17,7 @@ type IncidentType = 'trouble' | 'other'
 
 type Incident = {
   id: string
+  short_id: string | null
   title: string
   general_contractor: string
   site_name: string
@@ -38,6 +40,7 @@ type Props = {
   currentUserId: string
   isAdmin: boolean
   isDeveloper: boolean
+  isFavorited: boolean
   categories: CategoryWithSystems[]
 }
 
@@ -49,7 +52,7 @@ const STATUS_OPTIONS: { value: Status; label: string }[] = [
 
 const selectCls = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
 
-export default function IncidentActions({ incident, canEdit, initialFiles, currentUserId, isAdmin, isDeveloper, categories }: Props) {
+export default function IncidentActions({ incident, canEdit, initialFiles, currentUserId, isAdmin, isDeveloper, isFavorited, categories }: Props) {
   const [editing, setEditing] = useState(false)
   const [title, setTitle] = useState(incident.title)
   const [contractor, setContractor] = useState(incident.general_contractor)
@@ -242,6 +245,7 @@ export default function IncidentActions({ incident, canEdit, initialFiles, curre
             {new Date(incident.created_at).toLocaleString('ja-JP')}
           </p>
           <div className="flex items-center gap-2 shrink-0">
+            <FavoriteButton incidentId={incident.id} isFavorited={isFavorited} />
             {isDeveloper && incident.incident_type === 'trouble' && (
               <button
                 onClick={handleAiDiagnosis}
@@ -261,7 +265,12 @@ export default function IncidentActions({ incident, canEdit, initialFiles, curre
             )}
           </div>
         </div>
-        <h1 className="text-xl font-bold text-gray-800">{incident.title}</h1>
+        <div className="flex items-center gap-2 flex-wrap">
+          <h1 className="text-xl font-bold text-gray-800">{incident.title}</h1>
+          {incident.short_id && (
+            <span className="font-mono text-xs bg-gray-100 text-gray-400 px-1.5 py-0.5 rounded border border-gray-200 shrink-0">{incident.short_id}</span>
+          )}
+        </div>
       </div>
 
       <div className="flex items-center gap-2 mb-3">

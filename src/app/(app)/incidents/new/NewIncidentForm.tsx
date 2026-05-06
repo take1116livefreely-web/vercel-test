@@ -8,6 +8,11 @@ import type { CategoryWithSystems } from '@/lib/categories'
 
 type Props = { categories: CategoryWithSystems[] }
 
+function generateShortId(): string {
+  const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+  return Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * 36)]).join('')
+}
+
 export default function NewIncidentForm({ categories }: Props) {
   const router = useRouter()
   const supabase = createClient()
@@ -67,18 +72,28 @@ export default function NewIncidentForm({ categories }: Props) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/login'); return }
 
-    const { data: incident, error: err } = await (supabase
-      .from('incidents')
-      .insert({
-        title, general_contractor: generalContractor, site_name: siteName,
-        site_contact: siteContact || null, phone_number: phoneNumber || null, content,
-        created_by: user.id,
-        category: category || null,
-        device: device || null,
-        incident_type: incidentType,
-      })
-      .select('id')
-      .single() as any)
+    // short_id 衝突時は最大10回リトライ
+    let incident: { id: string } | null = null
+    let err: unknown = null
+    for (let i = 0; i < 10; i++) {
+      const { data, error } = await (supabase
+        .from('incidents')
+        .insert({
+          short_id: generateShortId(),
+          title, general_contractor: generalContractor, site_name: siteName,
+          site_contact: siteContact || null, phone_number: phoneNumber || null, content,
+          created_by: user.id,
+          category: category || null,
+          device: device || null,
+          incident_type: incidentType,
+        } as any)
+        .select('id')
+        .single() as any)
+      if (!error) { incident = data; break }
+      // 23505 = unique_violation（short_id 衝突）以外はリトライしない
+      if ((error as any)?.code !== '23505') { err = error; break }
+      err = error
+    }
 
     if (err) {
       setError('登録に失敗しました。もう一度お試しください。')
