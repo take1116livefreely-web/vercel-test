@@ -114,13 +114,27 @@ export default function IncidentActions({ incident, canEdit, initialFiles, curre
     setAiDiagnosis('')
     setAiLoading(true)
     setShowAiModal(true)
-    const res = await fetch(`/api/incidents/${incident.id}/ai-diagnosis`, { method: 'POST' })
-    const json = await res.json()
-    setAiLoading(false)
-    if (res.ok) {
-      setAiDiagnosis(json.diagnosis)
-    } else {
-      setAiDiagnosis(`エラー: ${json.error ?? '診断に失敗しました'}`)
+    try {
+      const res = await fetch(`/api/incidents/${incident.id}/ai-diagnosis`, { method: 'POST' })
+      if (!res.ok || !res.body) {
+        const json = await res.json().catch(() => ({}))
+        setAiDiagnosis(`エラー: ${json.error ?? '診断に失敗しました'}`)
+        setAiLoading(false)
+        return
+      }
+      setAiLoading(false)
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+      let text = ''
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        text += decoder.decode(value, { stream: true })
+        setAiDiagnosis(text)
+      }
+    } catch {
+      setAiDiagnosis('エラー: ネットワークエラーが発生しました')
+      setAiLoading(false)
     }
   }
 
