@@ -75,7 +75,7 @@ ${noEffectCount >= 3 ? `\n※ 「効果なし」が${noEffectCount}件続いて�
   try {
     stream = await client.messages.create({
       model: MODEL,
-      max_tokens: 700,
+      max_tokens: 1200,
       stream: true,
       system: SYSTEM_PROMPT,
       messages: [{ role: 'user', content: userPrompt }],
@@ -91,29 +91,33 @@ ${noEffectCount >= 3 ? `\n※ 「効果なし」が${noEffectCount}件続いて�
     async start(controller) {
       let inputTokens = 0
       let outputTokens = 0
-      for await (const event of stream) {
-        if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
-          controller.enqueue(encoder.encode(event.delta.text))
+      try {
+        for await (const event of stream) {
+          if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+            controller.enqueue(encoder.encode(event.delta.text))
+          }
+          if (event.type === 'message_delta' && event.usage) {
+            outputTokens = event.usage.output_tokens
+          }
+          if (event.type === 'message_start' && event.message.usage) {
+            inputTokens = event.message.usage.input_tokens
+          }
         }
-        if (event.type === 'message_delta' && event.usage) {
-          outputTokens = event.usage.output_tokens
+      } catch {
+        // ストリーム中断時もログ保存・close を保証するため握り潰す
+      } finally {
+        // ストリーム成功・失敗・途中切断いずれの場合もログ保存してから close
+        if (inputTokens > 0) {
+          await (admin as any).from('ai_usage_logs').insert({
+            incident_id: params.id,
+            used_by: user.id,
+            model: MODEL,
+            input_tokens: inputTokens,
+            output_tokens: outputTokens,
+          }).catch(() => {})
         }
-        if (event.type === 'message_start' && event.message.usage) {
-          inputTokens = event.message.usage.input_tokens
-        }
+        controller.close()
       }
-      // ストリームを閉じる前にログ保存（close後はVercelが関数を終了するため）
-      if (inputTokens > 0) {
-        await (admin as any).from('ai_usage_logs').insert({
-          incident_id: params.id,
-          used_by: user.id,
-          model: MODEL,
-          input_tokens: inputTokens,
-          output_tokens: outputTokens,
-        }).catch(() => {})
-      }
-
-      controller.close()
     },
   })
 
