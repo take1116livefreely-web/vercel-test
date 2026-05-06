@@ -16,6 +16,15 @@ const SYSTEM_PROMPT = `あなたはトンネル工事現場のITシステム障�
 - 対応履歴に「効果なし」が続く場合は専門業者手配を優先的に提案する`
 
 export async function POST(_: Request, { params }: { params: { id: string } }) {
+  try {
+  return await _handle(_, params)
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    return NextResponse.json({ error: `[未捕捉] ${msg}` }, { status: 500 })
+  }
+}
+
+async function _handle(_: Request, params: { id: string }) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -115,3 +124,4 @@ ${noEffectCount >= 3 ? `\n※ 「効果なし」が${noEffectCount}件続いて�
     headers: { 'Content-Type': 'text/plain; charset=utf-8' },
   })
 }
+
