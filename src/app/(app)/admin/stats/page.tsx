@@ -14,7 +14,7 @@ export default async function StatsPage() {
   const admin = createAdminClient()
 
   const [incidentsRes, aiLogsRes, aiTrainingRes] = await Promise.all([
-    (admin as any).from('incidents').select('status, category, device, created_at'),
+    (admin as any).from('incidents').select('status, category, device, created_at').limit(50000),
     (admin as any).from('ai_usage_logs').select('input_tokens, output_tokens, created_at').order('created_at', { ascending: false }),
     (admin as any).from('shared_documents').select('id', { count: 'exact', head: true }).eq('ai_training', true),
   ])
