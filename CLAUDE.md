@@ -36,9 +36,11 @@ users
   id (= auth.users.id), name, role (developer | admin | member), created_at
 
 incidents（案件）
-  id, title, general_contractor, site_name, site_contact, phone_number,
+  id, short_id (VARCHAR(4), UNIQUE, NOT NULL), title,
+  general_contractor, site_name, site_contact, phone_number,
   content, status ('open' | 'in_progress' | 'closed'),
   category, device, incident_type ('trouble' | 'other'),
+  resolution (解決内容テキスト),
   created_by → users.id (ON DELETE SET NULL),
   closed_at, closed_by → users.id (ON DELETE SET NULL),
   created_at
@@ -51,20 +53,34 @@ incident_files（添付ファイル）
   id, incident_id, response_id (NULL可), storage_path, name, mime_type, size,
   uploaded_by → users.id (ON DELETE SET NULL), created_at
 
+incident_favorites（お気に入り）
+  user_id → auth.users.id (ON DELETE CASCADE),
+  incident_id → incidents.id (ON DELETE CASCADE),
+  created_at
+  PRIMARY KEY (user_id, incident_id)
+
 categories（ジャンルマスタ）
   id, name, sort_order, created_at
 
 systems（システム名マスタ）
   id, category_id → categories.id (ON DELETE CASCADE), name, sort_order, created_at
+
+contacts（連絡先名寄せ）
+  id, general_contractor, site_name, site_contact, phone_number, created_at
+  UNIQUE (general_contractor, site_name, site_contact)
+
+ai_usage_logs（AI診断使用ログ）
+  id, incident_id → incidents.id, used_by → users.id,
+  model, input_tokens, output_tokens, created_at
 ```
 
 - ユーザー削除時、created_by / closed_by / responder_id / uploaded_by は SET NULL（データは残る）
-- incidents が親、responses・incident_files は CASCADE 削除
+- incidents が親、responses・incident_files・incident_favorites は CASCADE 削除
 
 ## フリーワード検索
 
 - 検索バーにスペース区切りでキーワードを入力 → AND 検索
-- 検索対象: `title`, `general_contractor`, `site_name`, `content`, `site_contact`
+- 検索対象: `title`, `general_contractor`, `site_name`, `content`, `site_contact`, `short_id`
 - 各キーワードで `.or("title.ilike.%kw%,general_contractor.ilike.%kw%,...")` を重ねる
 - pg_trgm GIN インデックスをこれら5カラムに設定済み（`supabase/schema.sql` 参照）
 
@@ -93,6 +109,12 @@ systems（システム名マスタ）
 
 > Vercel での設定：チーム全体の Environment Variables ではなく、プロジェクト（vercel-test）を選択 → Settings → Environment Variables に追加する。
 
+### AI診断（Anthropic API）
+
+| 変数名 | 値 |
+|---|---|
+| `ANTHROPIC_API_KEY` | Anthropic コンソールで発行した API キー |
+
 ## ロール体系
 
 | ロール | 説明 |
@@ -105,7 +127,7 @@ systems（システム名マスタ）
 
 ```
 /login               未認証時のみアクセス可
-/                    案件一覧 + フリーワード検索 + ステータス/種別タブ
+/                    案件一覧 + フリーワード検索 + ステータス/種別/お気に入りタブ
 /incidents/new       新規案件登録
 /incidents/[id]      案件詳細 + 対応履歴スレッド
 /contacts            連絡先一覧（案件から電話番号を名寄せ）
@@ -179,6 +201,30 @@ systems（システム名マスタ）
 - **Authentication → URL Configuration → Redirect URLs**: `https://*.vercel.app/auth/callback` を追加
 - **Authentication → URL Configuration → Site URL**: 本番の Vercel URL を設定
 - `src/app/api/admin/invite/route.ts` の `redirectTo` は `new URL(request.url).origin` から動的生成（環境変数 `NEXT_PUBLIC_SITE_URL` には依存しない）
+
+## AI診断機能
+
+- `developer` ロールのみ、`incident_type === 'trouble'` の案件で利用可能
+- `POST /api/incidents/[id]/ai-diagnosis` → Claude (claude-haiku-4-5) へストリーミングリクエスト
+- `ANTHROPIC_API_KEY` が必要（Vercel 環境変数に設定）
+- 入力: 案件タイトル・ゼネコン・現場・カテゴリ・システム名・内容・解決済み対応履歴
+- 出力: ストリーミングテキスト（ReadableStream）
+- 使用ログは事前推定値（入力トークン≈文字数/2、出力固定800）で `ai_usage_logs` テーブルに記録
+
+## short_id
+
+- 案件ごとに4桁英数字（0-9, A-Z）のユニーク ID を付与
+- `NewIncidentForm.tsx` の `generateShortId()` でクライアント側生成、INSERT 失敗（23505 unique_violation）時は最大10回リトライ
+- 案件一覧・詳細ページのタイトル横にバッジ表示
+- フリーワード検索の対象（例: `A3B7` で検索可能）
+
+## お気に入り機能
+
+- 各ユーザーが案件をスター登録できる（`incident_favorites` テーブル）
+- `POST /api/incidents/[id]/favorite` でトグル（あれば削除・なければ挿入）
+- RLS ポリシー: `auth.uid() = user_id`（自分のお気に入りのみ操作可）
+- 案件一覧の「★ お気に入り」ボタンでフィルタリング可能（`?fav=1`）
+- `FavoriteButton` は楽観的 UI 更新（エラー時に元に戻す）
 
 ## Key Conventions
 
