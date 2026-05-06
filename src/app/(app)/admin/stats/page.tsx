@@ -3,6 +3,23 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import StatsClient from './StatsClient'
 
+async function fetchAllIncidents(admin: any) {
+  const results: any[] = []
+  const batchSize = 1000
+  let offset = 0
+  while (true) {
+    const { data } = await admin
+      .from('incidents')
+      .select('status, category, device, created_at')
+      .range(offset, offset + batchSize - 1)
+    if (!data || data.length === 0) break
+    results.push(...data)
+    if (data.length < batchSize) break
+    offset += batchSize
+  }
+  return results
+}
+
 export default async function StatsPage() {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -13,13 +30,12 @@ export default async function StatsPage() {
 
   const admin = createAdminClient()
 
-  const [incidentsRes, aiLogsRes, aiTrainingRes] = await Promise.all([
-    (admin as any).from('incidents').select('status, category, device, created_at').limit(50000),
+  const [incidents, aiLogsRes, aiTrainingRes] = await Promise.all([
+    fetchAllIncidents(admin),
     (admin as any).from('ai_usage_logs').select('input_tokens, output_tokens, created_at').order('created_at', { ascending: false }),
     (admin as any).from('shared_documents').select('id', { count: 'exact', head: true }).eq('ai_training', true),
   ])
 
-  const incidents = (incidentsRes.data ?? []) as any[]
   const aiLogs = (aiLogsRes.data ?? []) as any[]
   const aiTrainingDocs = aiTrainingRes.count ?? 0
 
