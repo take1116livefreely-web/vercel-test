@@ -264,7 +264,7 @@ export default function DocumentsClient({ documents: initialDocs, categories, us
                 <th className="px-4 py-3">投稿者</th>
                 <th className="px-4 py-3">サイズ</th>
                 <th className="px-4 py-3">日付</th>
-                {isDeveloper && <th className="px-4 py-3 text-center">AI学習</th>}
+                {isDeveloper && <th className="px-4 py-3 text-center">AI診断候補</th>}
                 <th className="px-4 py-3"></th>
               </tr>
             </thead>
@@ -291,7 +291,7 @@ export default function DocumentsClient({ documents: initialDocs, categories, us
                           checked={doc.ai_training}
                           onChange={(e) => handleAiTraining(doc, e.target.checked)}
                           className="w-4 h-4 accent-blue-600"
-                          title="AI診断データとして使用"
+                          title="将来のAI診断学習データ候補として指定（現在は診断に使用していません）"
                         />
                       </td>
                     )}

@@ -1,68 +1,27 @@
 -- =============================================
--- 現場対応管理アプリ Supabase スキーマ
+-- 現場対応管理アプリ Supabase スキーマ（現行 DB 構造）
+-- 最終更新: 2026-05-06
 -- Supabase ダッシュボードの SQL Editor で実行する
+-- =============================================
+
+-- =============================================
+-- 拡張機能
+-- =============================================
+create extension if not exists pg_trgm;
+
+-- =============================================
+-- マスタテーブル
 -- =============================================
 
 -- ユーザーテーブル（auth.users と連動）
 create table public.users (
   id uuid references auth.users(id) on delete cascade primary key,
   name text not null,
-  role text not null default 'member' check (role in ('admin', 'member')),
+  role text not null default 'member' check (role in ('admin', 'member', 'developer')),
   created_at timestamptz not null default now()
 );
 
--- 案件テーブル
-create table public.incidents (
-  id uuid primary key default gen_random_uuid(),
-  title text not null,
-  general_contractor text not null,
-  site_name text not null,
-  content text not null,
-  created_by uuid references public.users(id) not null,
-  tags text[] not null default '{}',
-  created_at timestamptz not null default now()
-);
-
--- タグ検索用 GIN インデックス
-create index incidents_tags_idx on public.incidents using gin(tags);
-
--- 対応履歴テーブル（追記のみ、更新・削除なし）
-create table public.responses (
-  id uuid primary key default gen_random_uuid(),
-  incident_id uuid references public.incidents(id) on delete cascade not null,
-  content text not null,
-  responder_id uuid references public.users(id) not null,
-  tags text[] not null default '{}',
-  created_at timestamptz not null default now()
-);
-
-create index responses_incident_id_idx on public.responses(incident_id);
-create index responses_tags_idx on public.responses using gin(tags);
-
--- =============================================
--- Row Level Security
--- =============================================
-
-alter table public.users enable row level security;
-alter table public.incidents enable row level security;
-alter table public.responses enable row level security;
-
--- users: ログインユーザーは全員閲覧可、自分のレコードのみ更新可
-create policy "users: read all" on public.users for select using (auth.uid() is not null);
-create policy "users: update own" on public.users for update using (auth.uid() = id);
-
--- incidents: ログインユーザーは全件閲覧・登録可
-create policy "incidents: read all" on public.incidents for select using (auth.uid() is not null);
-create policy "incidents: insert" on public.incidents for insert with check (auth.uid() is not null);
-
--- responses: ログインユーザーは全件閲覧・追記可、削除・更新は不可
-create policy "responses: read all" on public.responses for select using (auth.uid() is not null);
-create policy "responses: insert" on public.responses for insert with check (auth.uid() is not null);
-
--- =============================================
--- ジャンル・システム名マスタ（管理者のみ追加・削除）
--- =============================================
-
+-- ジャンルマスタ（admin / developer のみ追加・削除）
 create table public.categories (
   id uuid primary key default gen_random_uuid(),
   name text not null unique,
@@ -70,6 +29,7 @@ create table public.categories (
   created_at timestamptz not null default now()
 );
 
+-- システム名マスタ（categories に紐付け）
 create table public.systems (
   id uuid primary key default gen_random_uuid(),
   category_id uuid references public.categories(id) on delete cascade not null,
@@ -79,64 +39,159 @@ create table public.systems (
   unique(category_id, name)
 );
 
-alter table public.categories enable row level security;
-alter table public.systems enable row level security;
+-- 連絡先マスタ（incidents から独立、全ユーザー編集・削除可能）
+create table public.contacts (
+  id uuid primary key default gen_random_uuid(),
+  general_contractor text not null,
+  site_name text not null,
+  site_contact text not null,
+  phone_number text,
+  updated_at timestamptz not null default now(),
+  unique(general_contractor, site_name, site_contact)
+);
 
--- 読み取り：ログインユーザー全員
+-- =============================================
+-- メインテーブル
+-- =============================================
+
+-- 案件テーブル
+create table public.incidents (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  general_contractor text not null,
+  site_name text not null,
+  site_contact text,
+  phone_number text,
+  content text not null,
+  status text not null default 'open' check (status in ('open', 'in_progress', 'closed')),
+  incident_type text not null default 'trouble' check (incident_type in ('trouble', 'other')),
+  category text,
+  device text,
+  resolution text,
+  created_by uuid references public.users(id) on delete set null,
+  closed_by uuid references public.users(id) on delete set null,
+  created_at timestamptz not null default now()
+);
+
+-- フリーワード検索用 GIN インデックス（pg_trgm）
+create index incidents_title_trgm_idx        on public.incidents using gin (title            gin_trgm_ops);
+create index incidents_contractor_trgm_idx   on public.incidents using gin (general_contractor gin_trgm_ops);
+create index incidents_site_name_trgm_idx    on public.incidents using gin (site_name         gin_trgm_ops);
+create index incidents_content_trgm_idx      on public.incidents using gin (content           gin_trgm_ops);
+create index incidents_site_contact_trgm_idx on public.incidents using gin (site_contact      gin_trgm_ops);
+
+-- 対応履歴テーブル（追記のみ、更新・削除なし）
+create table public.responses (
+  id uuid primary key default gen_random_uuid(),
+  incident_id uuid references public.incidents(id) on delete cascade not null,
+  responder_id uuid references public.users(id) on delete set null,
+  content text not null,
+  action_type text,
+  result_type text,
+  created_at timestamptz not null default now()
+);
+
+create index responses_incident_id_idx on public.responses(incident_id);
+
+-- 添付ファイルテーブル
+-- response_id が NULL の場合は案件直接添付、非 NULL の場合は対応履歴添付
+create table public.incident_files (
+  id uuid primary key default gen_random_uuid(),
+  incident_id uuid references public.incidents(id) on delete cascade not null,
+  response_id uuid references public.responses(id) on delete cascade,
+  storage_path text not null,
+  name text not null,
+  mime_type text not null,
+  size int not null,
+  uploaded_by uuid references public.users(id) on delete set null,
+  created_at timestamptz not null default now()
+);
+
+create index incident_files_incident_id_idx on public.incident_files(incident_id);
+
+-- 共有書類テーブル（PDF 書類共有）
+-- Storage bucket: shared-documents（private）
+create table public.shared_documents (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  storage_path text not null,
+  size int not null,
+  system_id uuid references public.systems(id) on delete set null,
+  uploaded_by uuid references public.users(id) on delete set null,
+  ai_training boolean not null default false,
+  created_at timestamptz not null default now()
+);
+
+-- AI 診断トークン使用ログ
+create table public.ai_usage_logs (
+  id uuid primary key default gen_random_uuid(),
+  incident_id uuid references public.incidents(id) on delete set null,
+  used_by uuid references public.users(id) on delete set null,
+  model text not null,
+  input_tokens int not null default 0,
+  output_tokens int not null default 0,
+  created_at timestamptz not null default now()
+);
+
+-- =============================================
+-- Row Level Security
+-- =============================================
+
+alter table public.users           enable row level security;
+alter table public.categories      enable row level security;
+alter table public.systems         enable row level security;
+alter table public.contacts        enable row level security;
+alter table public.incidents       enable row level security;
+alter table public.responses       enable row level security;
+alter table public.incident_files  enable row level security;
+alter table public.shared_documents enable row level security;
+alter table public.ai_usage_logs   enable row level security;
+
+-- users: ログインユーザーは全員閲覧可、自分のレコードのみ更新可
+create policy "users: read all"  on public.users for select using (auth.uid() is not null);
+create policy "users: update own" on public.users for update using (auth.uid() = id);
+
+-- categories / systems: ログインユーザー全員閲覧可（書き込みは admin client 経由）
 create policy "categories: read all" on public.categories for select using (auth.uid() is not null);
-create policy "systems: read all" on public.systems for select using (auth.uid() is not null);
+create policy "systems: read all"    on public.systems    for select using (auth.uid() is not null);
 
--- 書き込み：API ルートが admin client で行うため RLS ポリシー不要
+-- contacts: ログインユーザー全員 CRUD 可
+create policy "contacts: all"  on public.contacts for all using (auth.uid() is not null);
 
--- incidents にジャンル・システム名カラムを追加
-alter table public.incidents
-  add column if not exists category text,
-  add column if not exists device text;
+-- incidents: ログインユーザーは全件閲覧・登録可（更新・削除は admin client 経由）
+create policy "incidents: read all" on public.incidents for select using (auth.uid() is not null);
+create policy "incidents: insert"   on public.incidents for insert with check (auth.uid() is not null);
 
--- users 参照の FK を全て ON DELETE SET NULL に変更
--- （ユーザー削除時に案件・対応履歴・ファイルを残す）
-alter table public.incidents
-  drop constraint incidents_created_by_fkey,
-  alter column created_by drop not null,
-  add constraint incidents_created_by_fkey
-    foreign key (created_by) references public.users(id) on delete set null;
+-- responses: ログインユーザーは全件閲覧・追記可
+create policy "responses: read all" on public.responses for select using (auth.uid() is not null);
+create policy "responses: insert"   on public.responses for insert with check (auth.uid() is not null);
 
-alter table public.incidents
-  drop constraint incidents_closed_by_fkey,
-  add constraint incidents_closed_by_fkey
-    foreign key (closed_by) references public.users(id) on delete set null;
+-- incident_files: ログインユーザーは全件閲覧・追記可
+create policy "incident_files: read all" on public.incident_files for select using (auth.uid() is not null);
+create policy "incident_files: insert"   on public.incident_files for insert with check (auth.uid() is not null);
 
-alter table public.responses
-  drop constraint responses_responder_id_fkey,
-  alter column responder_id drop not null,
-  add constraint responses_responder_id_fkey
-    foreign key (responder_id) references public.users(id) on delete set null;
+-- shared_documents: ログインユーザーは全件閲覧可（書き込みは admin client 経由）
+create policy "shared_documents: read all" on public.shared_documents for select using (auth.uid() is not null);
 
-alter table public.incident_files
-  drop constraint incident_files_uploaded_by_fkey,
-  alter column uploaded_by drop not null,
-  add constraint incident_files_uploaded_by_fkey
-    foreign key (uploaded_by) references public.users(id) on delete set null;
+-- ai_usage_logs: admin client のみ使用
+-- （RLS ポリシーなし — admin client が全操作を担当）
 
--- developer ロールを追加
-alter table public.users
-  drop constraint if exists users_role_check;
-alter table public.users
-  add constraint users_role_check check (role in ('admin', 'member', 'developer'));
+-- =============================================
+-- 招待後に users レコードを自動作成するトリガー
+-- =============================================
+create or replace function public.handle_new_user()
+returns trigger language plpgsql security definer as $$
+begin
+  insert into public.users (id, name, role)
+  values (new.id, coalesce(new.raw_user_meta_data->>'name', new.email), 'member')
+  on conflict (id) do nothing;
+  return new;
+end;
+$$;
 
--- incidents に案件種別カラムを追加
-alter table public.incidents
-  add column if not exists incident_type text not null default 'trouble'
-  check (incident_type in ('trouble', 'other'));
-
--- フリーワード検索用 pg_trgm 拡張 + GIN インデックス
-create extension if not exists pg_trgm;
-
-create index if not exists incidents_title_trgm_idx           on public.incidents using gin (title           gin_trgm_ops);
-create index if not exists incidents_contractor_trgm_idx      on public.incidents using gin (general_contractor gin_trgm_ops);
-create index if not exists incidents_site_name_trgm_idx       on public.incidents using gin (site_name        gin_trgm_ops);
-create index if not exists incidents_content_trgm_idx         on public.incidents using gin (content          gin_trgm_ops);
-create index if not exists incidents_site_contact_trgm_idx    on public.incidents using gin (site_contact     gin_trgm_ops);
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute procedure public.handle_new_user();
 
 -- =============================================
 -- 初期マスタデータ
@@ -202,28 +257,3 @@ select c.id, s.name, s.sort_order from (values
   ('現場設備インフラ系', 'バッテリーロコ',        24)
 ) as s(cat_name, name, sort_order)
 join c on c.name = s.cat_name;
-
--- =============================================
--- 招待後に users レコードを自動作成するトリガー
--- （inviteUserByEmail で upsert するので補助的に用意）
--- =============================================
-create or replace function public.handle_new_user()
-returns trigger language plpgsql security definer as $$
-begin
-  insert into public.users (id, name, role)
-  values (new.id, coalesce(new.raw_user_meta_data->>'name', new.email), 'member')
-  on conflict (id) do nothing;
-  return new;
-end;
-$$;
-
-create trigger on_auth_user_created
-  after insert on auth.users
-  for each row execute procedure public.handle_new_user();
-
--- resolution カラム追加（解決済み時の解決内容）
-alter table public.incidents add column if not exists resolution text;
-
--- 対応履歴に対応種別・結果カラム追加（AI学習・統計用）
-alter table public.responses add column if not exists action_type text;
-alter table public.responses add column if not exists result_type text;

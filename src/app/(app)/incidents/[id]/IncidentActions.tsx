@@ -242,12 +242,13 @@ export default function IncidentActions({ incident, canEdit, initialFiles, curre
             {new Date(incident.created_at).toLocaleString('ja-JP')}
           </p>
           <div className="flex items-center gap-2 shrink-0">
-            {isDeveloper && (
+            {isDeveloper && incident.incident_type === 'trouble' && (
               <button
                 onClick={handleAiDiagnosis}
-                className="text-xs text-purple-600 hover:text-purple-800 px-2 py-0.5 rounded border border-purple-200 bg-purple-50 hover:bg-purple-100"
+                disabled={aiLoading}
+                className="text-xs text-purple-600 hover:text-purple-800 disabled:opacity-50 px-2 py-0.5 rounded border border-purple-200 bg-purple-50 hover:bg-purple-100"
               >
-                AI診断
+                {aiLoading ? '診断中...' : 'AI診断'}
               </button>
             )}
             {canEdit && (

@@ -4,9 +4,8 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import Anthropic from '@anthropic-ai/sdk'
 
 const MODEL = 'claude-haiku-4-5-20251001'
-const MAX_RESPONSES = 10 // 直近N件のみ送信
+const MAX_RESPONSES = 10
 
-// 固定システムプロンプト（キャッシュ対象）
 const SYSTEM_PROMPT = `あなたはトンネル工事現場のITシステム障害診断の専門アシスタントです。
 映像設備（CCTV・モニター）・通信設備（無線・電話）・防災設備・計測機器などのシステム障害を扱います。
 
@@ -27,7 +26,7 @@ export async function POST(_: Request, { params }: { params: { id: string } }) {
 
   const admin = createAdminClient()
   const [{ data: incident }, { data: allResponses }] = await Promise.all([
-    (admin as any).from('incidents').select('title, category, device, general_contractor, site_name, content, status').eq('id', params.id).single(),
+    (admin as any).from('incidents').select('title, category, device, general_contractor, site_name, content, status, incident_type, resolution').eq('id', params.id).single(),
     (admin as any)
       .from('responses')
       .select('content, action_type, result_type, created_at')
@@ -37,6 +36,10 @@ export async function POST(_: Request, { params }: { params: { id: string } }) {
   ])
 
   if (!incident) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+
+  // trouble 案件のみ AI 診断を適用
+  if (incident.incident_type !== 'trouble')
+    return NextResponse.json({ error: 'AI診断はトラブル案件のみ利用できます' }, { status: 400 })
 
   // 対応履歴を古い順に並び替えて整形
   const responses = ((allResponses ?? []) as any[]).reverse()
@@ -54,7 +57,7 @@ export async function POST(_: Request, { params }: { params: { id: string } }) {
 - システム名: ${incident.device ?? '未設定'}
 - ゼネコン / 現場: ${incident.general_contractor} / ${incident.site_name}
 - 障害内容: ${incident.content}
-
+${incident.resolution ? `- 解決内容: ${incident.resolution}` : ''}
 ## 対応履歴（直近${responses.length}件）
 ${responsesText}
 ${noEffectCount >= 3 ? `\n※ 「効果なし」が${noEffectCount}件続いています。` : ''}
@@ -68,21 +71,19 @@ ${noEffectCount >= 3 ? `\n※ 「効果なし」が${noEffectCount}件続いて�
 
   const client = new Anthropic()
 
-  // ストリーミング + プロンプトキャッシュ
-  const stream = await client.messages.create({
-    model: MODEL,
-    max_tokens: 1024,
-    stream: true,
-    system: [
-      {
-        type: 'text',
-        text: SYSTEM_PROMPT,
-        // @ts-ignore — cache_control は SDK で対応済みだが型定義が遅れている場合がある
-        cache_control: { type: 'ephemeral' },
-      },
-    ],
-    messages: [{ role: 'user', content: userPrompt }],
-  })
+  let stream
+  try {
+    stream = await client.messages.create({
+      model: MODEL,
+      max_tokens: 700,
+      stream: true,
+      system: SYSTEM_PROMPT,
+      messages: [{ role: 'user', content: userPrompt }],
+    })
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : '不明なエラー'
+    return NextResponse.json({ error: `AI診断に失敗しました: ${msg}` }, { status: 500 })
+  }
 
   // テキストチャンクをそのままストリームで返す
   const encoder = new TextEncoder()

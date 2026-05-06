@@ -127,7 +127,7 @@ export default function StatsClient({
 
           <div className="grid grid-cols-2 gap-3">
             <Card label="累計診断回数" value={totalAiCalls.toLocaleString()} />
-            <Card label="AI学習データ" value={`${aiTrainingDocs} 件`} sub="共有書類（AI学習 ON）" />
+            <Card label="AI診断候補データ" value={`${aiTrainingDocs} 件`} sub="共有書類（候補指定 ON）" />
           </div>
 
           <div className="bg-white rounded-xl border border-gray-200 p-4">
