@@ -46,6 +46,20 @@ async function _handle(_: Request, params: { id: string }) {
 
   if (!incident) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
+  // 同じジャンル・システムの解決済み類似案件を取得（自分自身を除く）
+  const similarQuery = (admin as any)
+    .from('incidents')
+    .select('title, content, resolution')
+    .eq('status', 'closed')
+    .eq('incident_type', 'trouble')
+    .neq('id', params.id)
+    .not('resolution', 'is', null)
+    .order('closed_at', { ascending: false })
+    .limit(3)
+  if (incident.category) similarQuery.eq('category', incident.category)
+  if (incident.device) similarQuery.eq('device', incident.device)
+  const { data: similarIncidents } = await similarQuery
+
   // trouble 案件のみ AI 診断を適用
   if (incident.incident_type !== 'trouble')
     return NextResponse.json({ error: 'AI診断はトラブル案件のみ利用できます' }, { status: 400 })
@@ -59,6 +73,13 @@ async function _handle(_: Request, params: { id: string }) {
       ).join('\n')
     : 'なし'
 
+  // 類似解決済み事例のテキスト整形
+  const similarText = (similarIncidents ?? []).length > 0
+    ? (similarIncidents as any[]).map((s, i) =>
+        `[事例${i + 1}] ${s.title}\n  症状: ${s.content}\n  解決内容: ${s.resolution}`
+      ).join('\n')
+    : ''
+
   const userPrompt = `## 案件情報
 - タイトル: ${incident.title}
 - ステータス: ${incident.status}
@@ -70,6 +91,7 @@ ${incident.resolution ? `- 解決内容: ${incident.resolution}` : ''}
 ## 対応履歴（直近${responses.length}件）
 ${responsesText}
 ${noEffectCount >= 3 ? `\n※ 「効果なし」が${noEffectCount}件続いています。` : ''}
+${similarText ? `\n## 同じジャンル・システムの解決済み事例\n${similarText}` : ''}
 
 ## 診断依頼
 上記の情報をもとに、以下を簡潔に回答してください：
