@@ -19,11 +19,14 @@ type ResponseWithFiles = {
 
 const ACTION_TYPES = ['確認作業', '再起動・リセット', '部品交換', '設定変更', '業者手配', 'その他'] as const
 const RESULT_TYPES = ['効果なし', '部分改善', '解決'] as const
+const CONFIRMATION_RESULT_TYPES = ['異常なし', '異常あり'] as const
 
 const RESULT_BADGE: Record<string, string> = {
   '効果なし': 'bg-gray-100 text-gray-500 border-gray-200',
   '部分改善': 'bg-yellow-50 text-yellow-700 border-yellow-200',
   '解決':     'bg-green-50 text-green-700 border-green-200',
+  '異常なし': 'bg-blue-50 text-blue-600 border-blue-200',
+  '異常あり': 'bg-orange-50 text-orange-600 border-orange-200',
 }
 
 type Props = {
@@ -48,7 +51,7 @@ export default function ResponseList({ responses, currentUserId, isAdmin }: Prop
     setEditContent(res.content)
     const at = res.action_type ?? ''
     setEditActionType(at)
-    setEditResultType(at === '確認作業' ? '効果なし' : (res.result_type ?? ''))
+    setEditResultType(res.result_type ?? (at === '確認作業' ? '異常なし' : ''))
   }
 
   async function handleEdit(id: string) {
@@ -134,7 +137,7 @@ export default function ResponseList({ responses, currentUserId, isAdmin }: Prop
                       onChange={(e) => {
                         const v = e.target.value
                         setEditActionType(v)
-                        if (v === '確認作業') setEditResultType('効果なし')
+                        setEditResultType(v === '確認作業' ? '異常なし' : '')
                       }}
                       className="border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
@@ -147,11 +150,12 @@ export default function ResponseList({ responses, currentUserId, isAdmin }: Prop
                     <select
                       value={editResultType}
                       onChange={(e) => setEditResultType(e.target.value)}
-                      disabled={editActionType === '確認作業'}
-                      className="border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
+                      className="border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                       <option value="">未選択</option>
-                      {RESULT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                      {(editActionType === '確認作業' ? CONFIRMATION_RESULT_TYPES : RESULT_TYPES).map((t) => (
+                        <option key={t} value={t}>{t}</option>
+                      ))}
                     </select>
                   </div>
                 </div>

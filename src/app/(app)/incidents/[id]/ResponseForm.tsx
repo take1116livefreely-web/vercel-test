@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 
 const ACTION_TYPES = ['確認作業', '再起動・リセット', '部品交換', '設定変更', '業者手配', 'その他'] as const
 const RESULT_TYPES = ['効果なし', '部分改善', '解決'] as const
+const CONFIRMATION_RESULT_TYPES = ['異常なし', '異常あり'] as const
 
 type Props = { incidentId: string; userId: string; incidentType: 'trouble' | 'other' }
 
@@ -112,7 +113,7 @@ export default function ResponseForm({ incidentId, userId, incidentType }: Props
               onChange={(e) => {
                 const v = e.target.value
                 setActionType(v)
-                if (v === '確認作業') setResultType('効果なし')
+                setResultType(v === '確認作業' ? '異常なし' : '')
               }}
               className={selectCls}
             >
@@ -126,11 +127,12 @@ export default function ResponseForm({ incidentId, userId, incidentType }: Props
             <select
               value={resultType}
               onChange={(e) => setResultType(e.target.value)}
-              disabled={actionType === '確認作業'}
-              className={`${selectCls} disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed`}
+              className={selectCls}
             >
               {actionType !== '確認作業' && <option value="" disabled>結果を選択 *</option>}
-              {RESULT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+              {(actionType === '確認作業' ? CONFIRMATION_RESULT_TYPES : RESULT_TYPES).map((t) => (
+                <option key={t} value={t}>{t}</option>
+              ))}
             </select>
             <span className="text-xs text-gray-400 whitespace-nowrap">（AI学習精度に影響します）</span>
           </div>

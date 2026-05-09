@@ -66,7 +66,10 @@ async function _handle(_: Request, params: { id: string }) {
 
   // 対応履歴を古い順に並び替えて整形
   const responses = ((allResponses ?? []) as any[]).reverse()
-  const noEffectCount = responses.filter((r) => r.result_type === '効果なし').length
+  // 確認作業の「異常なし/異常あり」は原因切り分け情報であり、「効果なし」とは意味が異なるため除外
+  const noEffectCount = responses.filter(
+    (r) => r.result_type === '効果なし' && r.action_type !== '確認作業'
+  ).length
   const responsesText = responses.length > 0
     ? responses.map((r, i) =>
         `[${i + 1}] ${r.action_type ?? '種別不明'}: ${r.content}（結果: ${r.result_type ?? '未記録'}）`
@@ -90,7 +93,7 @@ async function _handle(_: Request, params: { id: string }) {
 ${incident.resolution ? `- 解決内容: ${incident.resolution}` : ''}
 ## 対応履歴（直近${responses.length}件）
 ${responsesText}
-${noEffectCount >= 3 ? `\n※ 「効果なし」が${noEffectCount}件続いています。` : ''}
+${noEffectCount >= 3 ? `\n※ 対処を試みたが「効果なし」が${noEffectCount}件続いています。` : ''}
 ${similarText ? `\n## 同じジャンル・システムの解決済み事例\n${similarText}` : ''}
 
 ## 診断依頼
